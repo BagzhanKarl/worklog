@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block css %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.min.css">
+    <style>
+        .iti {
+            width: 100%;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12 col-sm-6">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-4">Добавить сотрудника</h2>
+                </div>
+                <div class="card-body">
+                    <form action="" method="post">
+                        <div class="row">
+                            <!-- Фамилия -->
+                            <div class="col-md-4 mb-3">
+                                <label for="lastName" class="form-label">Фамилия <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="lastName" name="last_name" placeholder="Введите фамилию" required>
+                            </div>
+                            <!-- Имя -->
+                            <div class="col-md-4 mb-3">
+                                <label for="firstName" class="form-label">Имя <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="firstName" name="first_name" placeholder="Введите имя" required>
+                            </div>
+                            <!-- Отчество -->
+                            <div class="col-md-4 mb-3">
+                                <label for="middleName" class="form-label">Отчество</label>
+                                <input type="text" class="form-control" id="middleName" name="middle_name" placeholder="Введите отчество">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Номер телефона -->
+                            <div class="col-md-4 mb-3">
+                                <label for="phoneNumber" class="form-label">Номер телефона <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" id="phoneInput">
+                                <input type="text" id="phone" name="phone" hidden required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="password" class="form-label">Пароль <span class="text-danger">*</span></label>
+                                <input type="password" name="password" id="password" class="form-control" >
+                            </div>
+                            <!-- Должность -->
+                            <div class="col-md-4 mb-3">
+                                <label for="position" class="form-label">Должность <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="position" required name="position" placeholder="Введите должность">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Отдел -->
+                            <div class="col-md-4 mb-3">
+                                <label for="department" class="form-label">Отдел <span class="text-danger">*</span></label>
+                                <select class="form-select" id="department" required name="department">
+                                    {% for item in departments %}
+                                        <option value="{{ item.id }}" {% if item.id == dep %} selected {% endif %}>{{ item.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <!-- Роль -->
+                            <div class="col-md-4 mb-3">
+                                <label for="role" class="form-label">Роль <span class="text-danger">*</span></label>
+                                <select class="form-select" id="role" required name="role">
+                                    {% for item in role %}
+                                        <option value="{{ item.id }}">{{ item.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <!-- Вахта -->
+                            <div class="col-md-4 mb-3">
+                                <label for="shift" class="form-label">Вахта <span class="text-danger">*</span></label>
+                                <select class="form-select" id="shift" required name="shift">
+                                    {% for item in vaxta %}
+                                        <option value="{{ item.id }}">{{ item.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="text-end mt-4">
+                            <button type="reset" class="btn btn-secondary me-2">Очистить</button>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block js %}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+    <script>
+        const phoneInput = document.querySelector("#phoneInput");
+        const iti = window.intlTelInput(phoneInput, {
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+            initialCountry: "kz",
+            preferredCountries: ["kz"],
+            separateDialCode: true
+        });
+
+        phoneInput.addEventListener("blur", () => {
+            const phoneNumber = iti.getNumber();
+            $('#phoneInput').removeClass('is-invalid');
+            $('#phoneInput').removeClass('is-valid');
+            if (iti.isValidNumber()) {
+                $('#phoneInput').removeClass('is-invalid');
+                $('#phoneInput').addClass('is-valid');
+                $('#phone').val(phoneNumber);
+            } else {
+                $('#phoneInput').addClass('is-invalid');
+            }
+        });
+    </script>
+{% endblock %}

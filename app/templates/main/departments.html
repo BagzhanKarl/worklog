@@ -1,0 +1,479 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container content-wrapper">
+    <div class="departments-header mb-4">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-md-6 col-sm-6">
+                <h1 class="page-title">Отделы</h1>
+            </div>
+            <div class="col-md-6 col-sm-6">
+                {% if user.role_id == 1 or user.role_id == 2 %}
+                <div class="d-flex gap-3 justify-content-end">
+                    <div class="search-container d-md-block d-none">
+                        <ion-icon name="search-outline" class="search-icon"></ion-icon>
+                        <input type="text" class="search-input" placeholder="Поиск отдела...">
+                    </div>
+                    <button class="btn btn-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
+                        <ion-icon name="add-outline"></ion-icon>
+                        Добавить отдел
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+
+        </div>
+    </div>
+
+    <div class="departments-grid">
+        {% for item in result %}
+            {% if user.role_id == 1 or user.role_id == 2 or user.department == item.id %}
+            <div class="department-card">
+                <div class="department-header">
+                    <div class="department-icon" style="background-color: {{ item.color }}">
+                        <ion-icon name="{{ item.icon }}" style="color: #000000"></ion-icon>
+                    </div>
+                    <div class="card-menu">
+                        <button class="btn btn-icon" data-bs-toggle="dropdown">
+                            <ion-icon name="ellipsis-horizontal"></ion-icon>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/department/{{ item.id }}"><ion-icon name="eye-outline"></ion-icon>Посмотреть</a></li>
+                            <li><a class="dropdown-item" href="/department/{{ item.id }}/delete"><ion-icon name="trash-outline"></ion-icon>Удалить</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="department-content">
+                    <h3 class="department-title">{{item.name}}</h3>
+                    <p class="department-description">{{ item.description }}</p>
+
+                    <div class="progress-section">
+                        <div class="progress-header">
+                            <span class="progress-label">Задачи</span>
+                            <span class="progress-value">{{ item.completed }}/{{ item.all_task }}</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" style="width: {{ item.pers }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="department-members">
+                        <div class="members-avatars">
+                            <div class="member-count">+{{ item.users }}</div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Модальное окно -->
+<div class="modal fade" id="addDepartmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить отдел</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <label class="form-label" for="department-name">Название отдела</label>
+                    <input type="text" class="form-control" id="department-name" name="name" placeholder="Введите название отдела" required>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label" for="department-description">Описание</label>
+                    <textarea class="form-control" id="department-description" name="description" rows="3" placeholder="Краткое описание отдела"></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <div class="form-label">Иконка отдела</div>
+                    <div class="icon-grid">
+                        <label for="icon1" class="icon-option active">
+                            <input type="radio" id="icon1" name="icon" value="code-slash-outline" checked hidden>
+                            <div for="icon1"><ion-icon name="code-slash-outline"></ion-icon></div>
+                        </label>
+                        <label for="icon2" class="icon-option">
+                            <input type="radio" id="icon2" name="icon" value="megaphone-outline" hidden>
+                            <div for="icon2"><ion-icon name="megaphone-outline"></ion-icon></div>
+                        </label>
+                        <label for="icon3" class="icon-option">
+                            <input type="radio" id="icon3" name="icon" value="analytics-outline" hidden>
+                            <div for="icon3"><ion-icon name="analytics-outline"></ion-icon></div>
+                        </label>
+                        <label for="icon4" class="icon-option">
+                            <input type="radio" id="icon4" name="icon" value="briefcase-outline" hidden>
+                            <div for="icon4"><ion-icon name="briefcase-outline"></ion-icon></div>
+                        </label>
+                        <label for="icon5" class="icon-option">
+                            <input type="radio" id="icon5" name="icon" value="people-outline" hidden>
+                            <div><ion-icon name="people-outline"></ion-icon></div>
+                        </label>
+                        <label for="icon6" class="icon-option">
+                            <input type="radio" id="icon6" name="icon" value="build-outline" hidden>
+                            <div><ion-icon name="build-outline"></ion-icon></div>
+                        </label>
+                    </label>
+                </div>
+
+                <div class="mb-4">
+                    <div class="form-label">Цвет отдела</div>
+                    <div class="color-grid">
+                        <label for="color1" class="color-option active" style="background-color: #E8F5E9">
+                            <input type="radio" id="color1" name="color" value="#E8F5E9" checked hidden>
+                            <div for="color1"></div>
+                        </label>
+                        <label for="color2" class="color-option" style="background-color: #E3F2FD">
+                            <input type="radio" id="color2" name="color" value="#E3F2FD" hidden>
+                            <div for="color2"></div>
+                        </label>
+                        <label for="color3" class="color-option" style="background-color: #FFF3E0">
+                            <input type="radio" id="color3" name="color" value="#FFF3E0" hidden>
+                            <div for="color3"></div>
+                        </label>
+                        <label for="color4" class="color-option" style="background-color: #F3E5F5">
+                            <input type="radio" id="color4" name="color" value="#F3E5F5" hidden>
+                            <div for="color4"></div>
+                        </label>
+                        <label for="color5" class="color-option" style="background-color: #E8EAF6">
+                            <input type="radio" id="color5" name="color" value="#E8EAF6" hidden>
+                            <div for="color5"></div>
+                        </label>
+                        <label for="color6" class="color-option" style="background-color: #E0F2F1">
+                            <input type="radio" id="color6" name="color" value="#E0F2F1" hidden>
+                            <div for="color6"></div>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary">Создать отдел</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block css %}
+<style>
+    .departments-header {
+        margin-top: 1.5rem;
+    }
+
+    .search-container {
+        position: relative;
+        width: 300px;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+        font-size: 1.25rem;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 3rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        background-color: var(--bg-light);
+        transition: all 0.3s ease;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .departments-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .department-card {
+        background: var(--bg-light);
+        border-radius: 1rem;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+    }
+
+    .department-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .department-header {
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .department-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .department-icon ion-icon {
+        font-size: 1.5rem;
+    }
+
+    .department-content {
+        padding: 0 1.5rem 1.5rem;
+    }
+
+    .department-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .department-description {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+    }
+
+    .progress-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .progress-label {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .progress-value {
+        color: var(--text-primary);
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .progress {
+        height: 6px;
+        background-color: var(--bg-secondary);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        background-color: var(--primary-color);
+        border-radius: 3px;
+    }
+
+    .department-members {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .members-avatars {
+        display: flex;
+        align-items: center;
+    }
+
+    .member-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-left: -8px;
+        border: 2px solid white;
+    }
+
+    .member-avatar:first-child {
+        margin-left: 0;
+    }
+
+    .member-count {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: var(--bg-secondary);
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-left: -8px;
+        border: 2px solid white;
+    }
+
+    .last-update {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .btn-icon {
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        color: var(--text-secondary);
+        transition: all 0.2s ease;
+    }
+
+    .btn-icon:hover {
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .dropdown-item ion-icon {
+        font-size: 1.25rem;
+    }
+
+    @media (max-width: 768px) {
+        .departments-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .search-container {
+            width: 100%;
+        }
+
+        .departments-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+<style>
+/* Стили для модального окна */
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.icon-option {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.icon-option ion-icon {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+}
+
+.icon-option:hover {
+    border-color: var(--primary-color);
+    background-color: var(--primary-light);
+}
+
+.icon-option.active {
+    border-color: var(--primary-color);
+    background-color: var(--primary-light);
+}
+
+.icon-option.active ion-icon {
+    color: var(--primary-color);
+}
+
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.color-option {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.active {
+    border-color: var(--primary-color);
+    position: relative;
+}
+
+.color-option.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border: 2px solid var(--primary-color);
+    border-radius: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block js %}
+<script>
+// Удаляем автоматический вызов modal.show() при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработчики для иконок
+    const iconOptions = document.querySelectorAll('.icon-option');
+    iconOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            document.querySelector('.icon-option.active')?.classList.remove('active');
+            option.classList.add('active');
+        });
+    });
+
+    // Обработчики для цветов
+    const colorOptions = document.querySelectorAll('.color-option');
+    colorOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            document.querySelector('.color-option.active')?.classList.remove('active');
+            option.classList.add('active');
+        });
+    });
+});
+</script>
+{% endblock %}

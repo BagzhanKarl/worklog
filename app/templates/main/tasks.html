@@ -1,0 +1,589 @@
+{% extends 'base.html' %}
+{% block css %}
+    <style>
+    :root {
+        --kanban-column-width: 350px;
+        --task-border-radius: 1rem;
+    }
+
+    .department-list-buttons {
+        position: sticky;
+        background: var(--bg-light);
+        padding: 10px 0;
+        z-index: 10;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .list {
+        display: flex;
+        overflow-x: auto;
+        gap: 1rem;
+        padding: 0.5rem 0;
+    }
+
+    .links-dep {
+        color: var(--text-secondary);
+        text-decoration: none;
+        padding: 0.75rem 1.25rem;
+        border-radius: var(--task-border-radius);
+        transition: all 0.3s ease;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .links-dep:hover {
+        color: var(--primary-color);
+        background-color: var(--primary-light);
+        transform: translateY(-1px);
+    }
+
+    .links-dep.active {
+        color: var(--primary-color);
+        background-color: var(--primary-light);
+        font-weight: 600;
+    }
+
+    .task-list-container {
+        display: flex;
+        gap: 1.5rem;
+        padding: 1.5rem 0;
+        overflow-x: auto;
+        height: calc(100vh - 180px);
+    }
+
+    .task-list {
+        width: var(--kanban-column-width);
+        flex-shrink: 0;
+    }
+
+    .task-list-head {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+    }
+
+    .task-list-dragdrop {
+        min-height: 200px;
+        padding: 0.5rem;
+        background-color: var(--bg-secondary);
+        border-radius: var(--task-border-radius);
+    }
+
+    .task-list-dragdrop.drag-over {
+        background-color: var(--primary-light);
+        outline: 2px dashed var(--primary-color);
+    }
+
+    .task {
+        background: var(--bg-light);
+        border-radius: var(--task-border-radius);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .task:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .task.dragging {
+        opacity: 0.5;
+        cursor: pointer;
+    }
+
+
+
+    .task-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    .task-description {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin: 1rem 0;
+    }
+
+    .progress {
+        height: 0.25rem !important;
+        background-color: var(--bg-secondary);
+        border-radius: 0.125rem;
+        margin: 0.5rem 0;
+    }
+
+    .progress-bar {
+        background-color: var(--primary-color);
+        border-radius: 0.125rem;
+    }
+
+    .task-footer {
+        border-top: 1px solid var(--border-color);
+        padding-top: 1rem;
+        margin-top: 1rem;
+    }
+
+    .task-platform-id {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .task-data {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .task-data ion-icon {
+        font-size: 1.1rem;
+    }
+
+    .btn-icon {
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        color: var(--text-secondary);
+        transition: all 0.2s ease;
+    }
+
+    .btn-icon:hover {
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+    .task-link{
+        text-decoration:none;
+        color: #6b7280;
+    }
+    .badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .nav-bar{
+        margin-bottom: 0 !important;
+    }
+    @media (max-width: 768px) {
+        .task-list-container {
+            height: calc(100vh - 220px);
+        }
+
+        .links-dep {
+            padding: 0.5rem 1rem;
+        }
+    }
+    </style>
+{% endblock %}
+
+{% block js %}
+<script>
+$(document).ready(function() {
+    let draggingTask = null;
+
+    // Функция для обновления счетчиков задач
+    function updateTaskCounters() {
+        $('.task-list').each(function() {
+            const taskCount = $(this).find('.task').length;
+            $(this).find('.count').text(taskCount);
+        });
+    }
+
+    // Функция для получения названия колонки
+    function getColumnName(column) {
+        return column.closest('.task-list').find('.task-list-dragdrop').attr('id');
+    }
+
+    // Функция для получения ID или название задачи
+    function getTaskInfo(task) {
+        const taskId = $(task).find('.task-platform-id').data('id');
+        const taskTitle = $(task).find('.task-title').text().trim();
+        return {
+            id: taskId,
+            title: taskTitle
+        };
+    }
+
+    // Функция для создания карточки задачи
+    function createTaskCard(task) {
+        return `
+            <div class="task" draggable="true">
+                <div class="task-header">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div class="task-title"><a href="/task/${task.platform_id}" class="task-link">${task.title}</a></div>
+
+                    </div>
+                </div>
+
+            </div>`;
+    }
+
+    // Инициализация счетчиков при загрузке
+    updateTaskCounters();
+
+    // Drag Start
+    $(document).on('dragstart', '.task', function(e) {
+        draggingTask = this;
+        $(this).addClass('dragging');
+        e.originalEvent.dataTransfer.setData('text/plain', '');
+
+        const taskInfo = getTaskInfo(this);
+        const sourceColumn = getColumnName($(this));
+        console.log('🎯 Начало перемещения задачи:', {
+            taskId: taskInfo.id,
+            taskTitle: taskInfo.title,
+            from: sourceColumn
+        });
+    });
+
+    // Drag End
+    $(document).on('dragend', '.task', function() {
+        $(this).removeClass('dragging');
+        $('.task-list-dragdrop').removeClass('drag-over');
+        draggingTask = null;
+        updateTaskCounters();
+    });
+
+    // Drag Over
+    $('.task-list-dragdrop').on('dragover', function(e) {
+        e.preventDefault();
+        $(this).addClass('drag-over');
+    });
+
+    // Drag Leave
+    $('.task-list-dragdrop').on('dragleave', function(e) {
+        e.preventDefault();
+        $(this).removeClass('drag-over');
+    });
+
+    // Drop
+    $('.task-list-dragdrop').on('drop', function(e) {
+        e.preventDefault();
+        $(this).removeClass('drag-over');
+
+        if (draggingTask) {
+            const taskInfo = getTaskInfo(draggingTask);
+            const sourceColumn = getColumnName($(draggingTask));
+            const targetColumn = getColumnName($(this));
+
+            $(this).append(draggingTask);
+
+            console.log('✅ Задача перемещена:', {
+                taskId: taskInfo.id,
+                taskTitle: taskInfo.title,
+                from: sourceColumn,
+                to: targetColumn,
+                timestamp: new Date().toLocaleTimeString()
+            });
+        }
+    });
+
+    // Department Switching
+    $('.links-dep').click(function() {
+        $('.links-dep').removeClass('active');
+        $(this).addClass('active');
+        fetchTasks($(this).data('dep'))
+        console.log('👉 Переключение на отдел:', $(this).text().trim());
+    });
+
+    // Task Menu Actions
+    $('.dropdown-item').click(function(e) {
+        e.preventDefault();
+        const action = $(this).text().trim();
+        const taskEl = $(this).closest('.task');
+        const taskInfo = getTaskInfo(taskEl);
+
+        if (action === 'Удалить') {
+            console.log('🗑️ Удаление задачи:', {
+                taskId: taskInfo.id,
+                taskTitle: taskInfo.title
+            });
+            taskEl.fadeOut(300, function() {
+                $(this).remove();
+                updateTaskCounters();
+            });
+        }
+    });
+
+    // Обработчик отправки формы добавления задачи
+    $('#saveTaskBtn').click(function() {
+        const taskData = {
+            title: $('#taskTitle').val(),
+            description: $('#taskDescription').val(),
+            priority: $('#taskPriority').val(),
+            deadline: $('#taskDeadline').val(),
+            platform_id: $('#taskPlatformId').val(),
+            status: 'new'
+        };
+
+        // Валидация формы
+        if (!taskData.title || !taskData.deadline || !taskData.platform_id) {
+            alert('Пожалуйста, заполните все обязательные поля');
+            return;
+        }
+
+        // AJAX запрос для сохранения задачи
+        $.ajax({
+            url: '/api/tasks/create',
+            method: 'POST',
+            data: taskData,
+            success: function(response) {
+                // Создаем HTML для новой задачи
+                const newTaskHtml = createTaskCard(taskData);
+
+                // Добавляем задачу в колонку "Надо сделать"
+                $('#new').append(newTaskHtml);
+
+                // Обновляем счетчики
+                updateTaskCounters();
+
+                // Закрываем модальное окно
+                $('#addTaskModal').modal('hide');
+
+                // Очищаем форму
+                $('#addTaskForm')[0].reset();
+            },
+            error: function(err) {
+                console.error('Ошибка при создании задачи:', err);
+                alert('Произошла ошибка при создании задачи');
+            }
+        });
+    });
+
+    // Очистка формы при закрытии модального окна
+    $('#addTaskModal').on('hidden.bs.modal', function() {
+        $('#addTaskForm')[0].reset();
+    });
+
+    function fetchTasks(departmentId) {
+        $.ajax({
+            url: `http://127.0.0.1:8000/api/tasks/department/${departmentId}`,
+            method: 'POST',
+            success: function (data) {
+                // Очистка колонок
+                $('#new').empty();
+                $('#inprocess').empty();
+                $('#testing').empty();
+                $('#done').empty();
+
+                // Группировка задач по статусам
+                const groupedTasks = {
+                    new: [],
+                    inprocess: [],
+                    testing: [],
+                    done: []
+                };
+
+                data.forEach(task => {
+                    if (groupedTasks[task.status]) {
+                        groupedTasks[task.status].push(task);
+                    }
+                });
+
+                // Заполнение колонок
+                Object.keys(groupedTasks).forEach(status => {
+                    groupedTasks[status].forEach(task => {
+                        $(`#${status}`).append(createTaskCard(task));
+                    });
+                });
+
+                updateTaskCounters();
+            },
+            error: function (err) {
+                console.error('Ошибка при загрузке задач:', err);
+            }
+        });
+    }
+
+    {% if user.role_id == 4 or user.role_id == 3 %}
+    fetchTasks({{ user.department }})
+    {% else %}
+    fetchTasks(1)
+    {% endif %}
+});
+</script>
+{% endblock %}
+
+{% block content %}
+    {% if user.role_id == 1 or user.role_id == 2 %}
+    <div class="department-list-buttons">
+        <div class="container">
+            <div class="list">
+            {% for item in department %}
+                    {% if user.role_id == 1 or user.role_id == 2 %}
+                        <div title="{{ item.description }}" data-dep="{{ item.id }}" class="links-dep {% if loop.index == 1 %}active{% endif %}">
+                            <ion-icon name="folder-outline"></ion-icon>
+                            {{ item.name }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="container">
+        <div class="task-list-container">
+            <!-- Колонка "Надо сделать" -->
+            <div class="task-list">
+                <h5 class="task-list-head">
+                    <ion-icon name="list-outline" style="color: var(--warning-color)"></ion-icon>
+                    Надо сделать
+                    <div class="count badge text-bg-warning count">0</div>
+                </h5>
+                <div id="new" data-id="new" class="task-list-dragdrop">
+                    <div class="task" draggable="true">
+                        <div class="task-header">
+                            <div class="d-flex justify-content-between align-items-start gap-3">
+                                <div class="task-title">
+                                    Создать дизайн для новой страницы
+                                </div>
+                                <div class="card-menu">
+                                    <button class="btn btn-icon" data-bs-toggle="dropdown">
+                                        <ion-icon name="ellipsis-horizontal"></ion-icon>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#"><ion-icon name="eye-outline"></ion-icon>Посмотреть</a></li>
+                                        <li><a class="dropdown-item" href="#"><ion-icon name="trash-outline"></ion-icon>Удалить</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="task-body">
+                            <div class="task-description">
+                                Необходимо разработать современный и удобный интерфейс для новой страницы проекта.
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-secondary">15% из 100%</span>
+                                <span class="text-secondary">18.01.2025</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: 15%"></div>
+                            </div>
+                        </div>
+                        <div class="task-footer">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="task-platform-id">#UI001</div>
+                                <div class="task-data d-flex align-items-center gap-3">
+                                    <span class="d-flex align-items-center gap-1"><ion-icon name="eye-outline"></ion-icon> 4</span>
+                                    <span class="d-flex align-items-center gap-1"><ion-icon name="chatbubbles-outline"></ion-icon> 15</span>
+                                    <span class="d-flex align-items-center gap-1"><ion-icon name="document-attach-outline"></ion-icon> 2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% if user.role_id in [1, 2, 3] %}
+                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                    <ion-icon name="add-outline"></ion-icon>
+                    <span>Добавить задачу</span>
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Колонка "В работе" -->
+            <div class="task-list">
+                <h5 class="task-list-head">
+                    <ion-icon name="time-outline" style=""></ion-icon>
+                    В работе
+                    <div class="count badge text-bg-info">0</div>
+                </h5>
+                <div id="inprocess" data-id="inprocess" class="task-list-dragdrop"></div>
+                {% if user.role_id in [1, 2, 3] %}
+                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                    <ion-icon name="add-outline"></ion-icon>
+                    <span>Добавить задачу</span>
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Колонка "На проверке" -->
+            <div class="task-list">
+                <h5 class="task-list-head">
+                    <ion-icon name="eye-outline" style="color: var(--primary-color)"></ion-icon>
+                    На проверке
+                    <div class="count badge text-bg-primary">0</div>
+                </h5>
+                <div id="testing" data-id="testing" class="task-list-dragdrop"></div>
+                {% if user.role_id in [1, 2, 3] %}
+                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                    <ion-icon name="add-outline"></ion-icon>
+                    <span>Добавить задачу</span>
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Колонка "Готово" -->
+            <div class="task-list">
+                <h5 class="task-list-head">
+                    <ion-icon name="checkmark-circle-outline" style="color: var(--success-color)"></ion-icon>
+                    Готово
+                    <div class="count badge text-bg-success">0</div>
+                </h5>
+                <div id="done" data-id="done" class="task-list-dragdrop"></div>
+                {% if user.role_id in [1, 2, 3] %}
+                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                    <ion-icon name="add-outline"></ion-icon>
+                    <span>Добавить задачу</span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для добавления задачи -->
+    <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTaskModalLabel">Добавить новую задачу</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addTaskForm">
+                        <div class="mb-3">
+                            <label for="taskTitle" class="form-label">Название задачи</label>
+                            <input type="text" class="form-control" id="taskTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="taskDescription" class="form-label">Описание</label>
+                            <textarea class="form-control" id="taskDescription" rows="3"></textarea>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="taskPriority" class="form-label">Приоритет</label>
+                                <select class="form-select" id="taskPriority">
+                                    <option value="low">Низкий</option>
+                                    <option value="medium">Средний</option>
+                                    <option value="high">Высокий</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="taskDeadline" class="form-label">Срок выполнения</label>
+                                <input type="date" class="form-control" id="taskDeadline" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="taskPlatformId" class="form-label">ID в системе</label>
+                            <input type="text" class="form-control" id="taskPlatformId" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveTaskBtn">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

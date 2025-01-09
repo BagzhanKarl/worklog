@@ -1,0 +1,733 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container content-wrapper">
+    <!-- Header Section -->
+    <div class="task-header mb-1">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex gap-3">
+                    <a href="/tasks" class="btn btn-icon">
+                        <ion-icon name="arrow-back-outline" style="font-size: 22px"></ion-icon>
+                    </a>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h3 class="page-title mb-0">{{ task.title }}</h3>
+                        </div>
+                        <div class="task-meta">
+                            <span class="task-id">#{{ task.task_platform_id }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#editTaskModal">
+                        <ion-icon name="create-outline"></ion-icon>
+                        Редактировать
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-3">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-3">Дедлайн</h3>
+                    <hr>
+                    <div class="deadline-info">
+                        <div class="deadline-date">{{ task.deadline }}</div>
+                        <div class="deadline-countdown" data-deadline="{{ task.deadline }}"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <select class="form-select status-select" data-status="{{ task.status }}">
+                        <option value="new" {% if task.status == 'new' %}selected{% endif %}>Надо сделать</option>
+                        <option value="inprocess" {% if task.status == 'inprocess' %}selected{% endif %}>В работе</option>
+                        <option value="testing" {% if task.status == 'testing' %}selected{% endif %}>На проверке</option>
+                        <option value="done" {% if task.status == 'done' %}selected{% endif %}>Выполнено</option>
+                    </select>
+
+                    <div class="mt-3 mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>Номер задачи:</div>
+                            <div>#{{ task.task_platform_id }}</div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="mb-2">
+                        <div class="d-flex content-wrapper justify-content-between align-items-center">
+                            <div>Приоритет:</div>
+                            <div>
+                                {% if task.priority == 'low' %}
+                                <span class="badge bg-warning">Низкий</span>
+                                {% elif task.priority == 'medium' %}
+                                <span class="badge bg-info">Средний</span>
+                                {% elif task.priority == 'high' %}
+                                <span class="badge bg-danger">Высокий</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>Создано в:</div>
+                            <div>{{ task.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>Обновлено в:</div>
+                            <div>{{ task.updated_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                        </div>
+                    </div>
+                    <hr>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title mb-3">Участники</h3>
+                    <div class="member-list">
+                        {% if task.members %}
+                            {% for member in task.members %}
+                            <div class="member-item">
+                                <div class="member-avatar">{{ member.initials }}</div>
+                                <div class="member-info">
+                                    <div class="member-name">{{ member.name }}</div>
+                                    <div class="member-role">{{ member.role }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            Задача поручена всему отделу
+                        {% endif %}
+                    </div>
+                    {% if user.role_id == 1 or user.role_id == 2 %}
+                        <div class="add_member mt-4">
+                            <a class="btn btn-primary w-100 d-flex align-items-center gap-3 justify-content-center">
+                                <ion-icon name="person-add-outline"></ion-icon>
+                                Указать сотрудника
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-9">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Описание</h3>
+                </div>
+                <div class="card-body">
+                    <div class="description">
+                        {{ task.description }}
+                    </div>
+                    <hr>
+                    <div class="progress" role="progressbar" style="height: 5px !important;" aria-label="Basic example" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="mt-4 checbox-progress">
+                        <div class="card-title mb-3">Подзадачи</div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault1">
+                            <label class="form-check-label" for="flexCheckDefault1">
+                                Default checkbox
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault2">
+                            <label class="form-check-label" for="flexCheckDefault2">
+                                Default checkbox
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault3">
+                            <label class="form-check-label" for="flexCheckDefault3">
+                                Default checkbox
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault4">
+                            <label class="form-check-label" for="flexCheckDefault4">
+                                Default checkbox
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-4">
+                <div class="card-body">
+                    <style>
+                        .content-nav-bar .nav-item .nav-link{
+                            color: black !important;
+                        }
+                        .content-nav-bar .nav-item .nav-link.active, .content-nav-bar .nav-item .nav-link:hover{
+                            color: var(--primary-color) !important;
+                        }
+                        .comment-area{
+                            min-height: 100px;
+                        }
+                        .tab{
+                            display: none;
+                            transition: all .6s ease;
+                        }
+                        .tab.active{
+                            display: block;
+                        }
+                    </style>
+                    <ul class="nav nav-underline content-nav-bar">
+                        <li class="nav-item">
+                            <a class="tab-btn nav-link active" aria-current="page" data-href="#comment">Коментарий</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="tab-btn nav-link" data-href="#files">Файлы</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="tab-btn nav-link" data-href="#history">История</a>
+                        </li>
+                    </ul>
+                    <hr>
+                    <div class="tab active" id="comment">
+                        <div class="comment-area">
+
+                        </div>
+                        <div class="commet-form">
+                            <form action="/api/add/comment/{{ task.id }}" method="POST" enctype="multipart/form-data">
+                                <textarea name="comment" id="comment" rows="4" class="form-control" required></textarea>
+                                <div class="d-flex justify-content-end align-items-center gap-3 mt-3">
+                                    <label for="file" class="btn btn-light">
+                                        <span>
+                                            <ion-icon name="attach-outline" style="font-size: 20px"></ion-icon>
+                                        </span>
+                                        <input type="file" id="file" name="file" hidden>
+                                    </label>
+                                    <button type="submit" class="btn btn-primary d-flex justify-content-between align-items-center gap-2">
+                                        <ion-icon name="arrow-up-circle-outline" style="font-size: 20px"></ion-icon>
+                                        Отправить
+                                    </button>
+                                </div>
+                            </form>
+
+                        </div>
+                    </div>
+                    <div class="tab" id="files">
+                        <div class="d-flex gap-3 align-items-center justify-content-between mt-3 mb-4">
+                            <div class="left-side d-flex gap-3 align-items-center">
+                                <ion-icon name="document-outline" style="font-size: 32px; display: flex; justify-content: center; align-items: center"></ion-icon>
+                                <span class="">Название документа</span>
+                            </div>
+                            <div class="right-side">
+                                <ion-icon name="cloud-download-outline" style="font-size: 25px; color: red; display: flex; justify-content: center; align-items: center"></ion-icon>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-3 align-items-center justify-content-between mb-2">
+                            <div class="left-side d-flex gap-3 align-items-center">
+                                <ion-icon name="document-outline" style="font-size: 32px; display: flex; justify-content: center; align-items: center"></ion-icon>
+                                <span class="">Название документа</span>
+                            </div>
+                            <div class="right-side">
+                                <ion-icon name="cloud-download-outline" style="font-size: 25px; color: red; display: flex; justify-content: center; align-items: center"></ion-icon>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab" id="history">
+                        <div class="activity-timeline">
+
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <ion-icon name="time-outline" style="display: flex; justify-content: center; align-items: center; font-size: 22px"></ion-icon>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Assumenda blanditiis, consequatur corporis eveniet exercitationem laboriosam odit optio tempore voluptatem voluptatibus?</div>
+                                    <div class="activity-date">09.01.2025 10:43</div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Task Modal -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактировать задачу</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Название</label>
+                    <input type="text" class="form-control" name="title" value="{{ task.title }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Описание</label>
+                    <textarea class="form-control" name="description" rows="3">{{ task.description }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Приоритет</label>
+                    <select class="form-select" name="priority">
+                        <option value="low" {% if task.priority == 'low' %}selected{% endif %}>Низкий</option>
+                        <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>Средний</option>
+                        <option value="high" {% if task.priority == 'high' %}selected{% endif %}>Высокий</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Дедлайн</label>
+                    <input type="datetime-local" class="form-control" name="deadline" value="{{ task.deadline }}">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Archive Confirmation Modal -->
+<div class="modal fade" id="archiveTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Архивировать задачу</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите архивировать эту задачу? Это действие нельзя отменить.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger">Архивировать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Checklist Item Modal -->
+<div class="modal fade" id="addChecklistItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить пункт</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Текст</label>
+                    <input type="text" class="form-control" name="text" placeholder="Введите текст...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary">Добавить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить участника</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Пользователь</label>
+                    <select class="form-select" name="user_id">
+                        {% for user in available_users %}
+                        <option value="{{ user.id }}">{{ user.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary">Добавить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block css %}
+<style>
+    /* Task Header Styles */
+    .task-header {
+        padding: 1.5rem 0;
+    }
+
+    .task-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        color: var(--text-secondary);
+    }
+
+    .department-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+    }
+
+    .dot-divider {
+        color: var(--border-color);
+    }
+
+    /* Content Card Styles */
+    .content-card {
+        background: var(--bg-light);
+        border-radius: 1rem;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1rem 1.5rem;
+        background: var(--bg-light);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Badge Styles */
+    .badge[data-priority="low"] {
+        background-color: var(--success-light);
+        color: var(--success-color);
+    }
+
+    .badge[data-priority="medium"] {
+        background-color: var(--warning-light);
+        color: var(--warning-color);
+    }
+
+    .badge[data-priority="high"] {
+        background-color: var(--danger-light);
+        color: var(--danger-color);
+    }
+
+    /* Checklist Styles */
+    .checklist-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .checklist-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Comments Styles */
+    .comment-item {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .comment-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+    }
+
+    .comment-content {
+        flex: 1;
+    }
+
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.25rem;
+    }
+
+    .comment-author {
+        font-weight: 500;
+    }
+
+    .comment-date {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    /* Attachments Styles */
+    .attachments-grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .attachment-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+    }
+
+    .attachment-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--bg-secondary);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .attachment-info {
+        flex: 1;
+    }
+
+    .attachment-name {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .attachment-size {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    /* Members Styles */
+    .member-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .member-item:last-child {
+        border-bottom: none;
+    }
+
+    .member-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--primary-light);
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .member-info {
+        flex: 1;
+    }
+
+    .member-name {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .member-role {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    /* Activity Timeline Styles */
+    .activity-item {
+        display: flex;
+        gap: 1rem;
+        padding: 0.75rem 0;
+    }
+
+    .activity-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--bg-secondary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .activity-text {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .activity-date {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Status Select Styles */
+    .status-select[data-status="todo"] {
+        border-color: var(--warning-color);
+    }
+
+    .status-select[data-status="in_progress"] {
+        border-color: var(--info-color);
+    }
+
+    .status-select[data-status="review"] {
+        border-color: var(--primary-color);
+    }
+
+    .status-select[data-status="done"] {
+        border-color: var(--success-color);
+    }
+
+    /* Deadline Styles */
+    .deadline-info {
+        text-align: center;
+    }
+
+    .deadline-date {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .deadline-countdown {
+        color: var(--text-secondary);
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .task-header .row {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .task-header .col-md-4 {
+            width: 100%;
+        }
+
+        .content-card {
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block js %}
+<script>
+$(document).ready(function(){
+    $('.tab-btn').on('click', function (){
+        let id = $(this).data('href');
+        $('.tab-btn').removeClass('active');
+        $(this).addClass('active');
+        $('.tab').removeClass('active');
+        $(id).addClass('active');
+
+    })
+})
+document.addEventListener('DOMContentLoaded', function() {
+    // Countdown Timer
+    function updateDeadlineCountdown() {
+        const deadlineElement = document.querySelector('.deadline-countdown');
+        if (!deadlineElement) return;
+
+        const deadline = new Date(deadlineElement.dataset.deadline).getTime();
+        const now = new Date().getTime();
+        const distance = deadline - now;
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+
+        if (distance < 0) {
+            deadlineElement.innerHTML = 'Срок истёк';
+            deadlineElement.style.color = 'var(--danger-color)';
+        } else {
+            deadlineElement.innerHTML = `Осталось: ${days}д ${hours}ч ${minutes}м`;
+        }
+    }
+
+    // Update countdown every minute
+    updateDeadlineCountdown();
+    setInterval(updateDeadlineCountdown, 60000);
+
+    // Status Change Handler
+    const statusSelect = document.querySelector('.status-select');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function(e) {
+            const newStatus = e.target.value;
+            // Here you can add AJAX call to update status
+            statusSelect.dataset.status = newStatus;
+        });
+    }
+
+    // Checklist Item Toggle
+    document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function(e) {
+            const itemId = this.id.replace('check', '');
+            // Here you can add AJAX call to update checklist item status
+        });
+    });
+
+    // File Upload Handler
+    const fileUpload = document.getElementById('file-upload');
+    if (fileUpload) {
+        fileUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Here you can add file upload logic
+                console.log('File selected:', file.name);
+            }
+        });
+    }
+
+    // Comment Form Handler
+    const commentForm = document.querySelector('.comment-form');
+    if (commentForm) {
+        commentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const input = this.querySelector('input');
+            const comment = input.value.trim();
+            if (comment) {
+                // Here you can add AJAX call to submit comment
+                input.value = '';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
