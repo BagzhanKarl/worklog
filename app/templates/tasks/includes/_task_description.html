@@ -1,0 +1,463 @@
+{# _task_description.html #}
+<div class="description-card">
+    {# Секция описания #}
+    <div class="description-section">
+        <div class="section-header">
+            <div class="header-title">
+                <ion-icon name="document-text-outline"></ion-icon>
+                <h5>Описание задачи</h5>
+            </div>
+            {% if user.role_id in [1, 2] or user.id == task.creator.id %}
+                <button class="edit-btn" data-bs-toggle="modal" data-bs-target="#editDescriptionModal">
+                    <ion-icon name="create-outline"></ion-icon>
+                </button>
+            {% endif %}
+        </div>
+
+        <div class="description-content">
+            {% if task.description %}
+                <div class="formatted-text">
+                    {{ task.description|safe }}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <ion-icon name="document-outline"></ion-icon>
+                    </div>
+                    <p>Описание задачи не добавлено</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Секция чек-листа #}
+    <div class="checklist-section">
+        <div class="section-header">
+            <div class="header-title">
+                <ion-icon name="checkbox-outline"></ion-icon>
+                <h5>Чек-лист</h5>
+                <span class="counter">{{ task.checklists|length }}</span>
+            </div>
+            {% if user.role_id in [1, 2] or user.id == task.creator.id %}
+                <button class="add-btn" data-bs-toggle="modal" data-bs-target="#addChecklistModal">
+                    <ion-icon name="add-outline"></ion-icon>
+                    <span>Добавить</span>
+                </button>
+            {% endif %}
+        </div>
+
+        {# Прогресс выполнения #}
+
+
+        {# Список чек-листов #}
+        <div class="checklist-container">
+            {% if task.checklists|length > 0 %}
+                {% for checklist in task.checklists %}
+                    <div class="checklist-group" data-checklist-id="{{ checklist.id }}">
+                        <div class="group-header">
+                            <h6>{{ checklist.title }}</h6>
+                            {% if checklist.department_id %}
+                                <span class="department-badge">
+                                    {{ checklist.department_name }}
+                                </span>
+                            {% endif %}
+                            <button type="button"
+                                    class="add-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#addItemModal"
+                                    data-checklist-id="{{ checklist.id }}">
+                                <ion-icon name="add-outline"></ion-icon>
+                                Добавить подзадачу
+                            </button>
+                        </div>
+                        <div class="checklist-items">
+                            {% for item in checklist['items'] %}
+                                <div class="checklist-item" data-item-id="{{ item.id }}">
+                                    <div class="item-main">
+                                        <label class="custom-checkbox">
+                                            <input type="checkbox"
+                                                   {% if item.is_completed %}checked{% endif %}
+                                                   {% if not user.role_id in [1, 2] and user.id != task.creator.id %}disabled{% endif %}
+                                                   data-item-id="{{ item.id }}">
+                                            <span class="checkbox-mark"></span>
+                                            <span class="checkbox-label">{{ item.content }}</span>
+                                        </label>
+                                    </div>
+                                    <div class="item-meta">
+                                        {% if item.department %}
+                                            <span class="meta-tag">{{ item.department }}</span>
+                                        {% endif %}
+                                        {% if item.is_completed and item.completed_by %}
+                                            <div class="completion-info">
+                                                <span class="completed-by">{{ item.completed_by }}</span>
+                                                <span class="completed-at">{{ item.completed_at.strftime('%H:%M - %d.%m.%Y') }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <ion-icon name="list-outline"></ion-icon>
+                    </div>
+                    <p>Чек-лист пока пуст</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.description-card {
+    background: var(--bg-light);
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.description-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.description-section,
+.checklist-section {
+    padding: 1.5rem;
+}
+
+.description-section {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-title h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.header-title ion-icon {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.counter {
+    background: var(--primary-light);
+    color: var(--primary-color);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    margin-left: 0.5rem;
+}
+
+.edit-btn,
+.add-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: none;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.edit-btn:hover,
+.add-btn:hover {
+    background: var(--primary-light);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.add-btn {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.add-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.formatted-text {
+    line-height: 1.6;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 0;
+    color: var(--text-secondary);
+}
+
+.empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.progress-block {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.progress-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+}
+
+.completed {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.total {
+    color: var(--text-secondary);
+}
+
+.progress-percent {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.progress {
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(to right, var(--primary-color), var(--primary-hover));
+    border-radius: 1rem;
+    transition: width 0.6s ease;
+}
+
+.checklist-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.checklist-group {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.checklist-group:hover {
+    transform: translateY(-2px);
+}
+
+.group-header {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.group-header h6 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.checklist-items {
+    padding: 0.5rem 1rem;
+}
+
+.checklist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.checklist-item:last-child {
+    border-bottom: none;
+}
+
+.checklist-item:hover {
+    transform: translateX(4px);
+}
+
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.custom-checkbox input {
+    display: none;
+}
+
+.checkbox-mark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.checkbox-mark::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: var(--primary-color);
+    border-radius: 3px;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.2s ease;
+}
+
+.custom-checkbox input:checked + .checkbox-mark {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+.custom-checkbox input:checked + .checkbox-mark::after {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.custom-checkbox input:checked ~ .checkbox-label {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+.item-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.meta-tag {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    border-radius: 1rem;
+    font-weight: 500;
+}
+
+.completion-info {
+    text-align: right;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.completed-by {
+    font-weight: 500;
+    color: var(--primary-color);
+}
+
+.completed-at {
+    font-size: 0.7rem;
+}
+
+@media (max-width: 768px) {
+    .checklist-item {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .item-meta {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding-left: 2.75rem;
+    }
+
+    .section-header {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.description-card {
+    animation: fadeIn 0.3s ease-out;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработчик открытия модального окна
+    const addItemModal = document.getElementById('addItemModal');
+    addItemModal.addEventListener('show.bs.modal', function(event) {
+        // Получаем ID чеклиста из кнопки, которая открыла модальное окно
+        const button = event.relatedTarget;
+        const checklistId = button.getAttribute('data-checklist-id');
+
+        // Устанавливаем ID чеклиста в скрытое поле формы
+        document.getElementById('checklistId').value = checklistId;
+    });
+
+    // Обработчик отправки формы
+    const addItemForm = document.getElementById('addItemForm');
+
+});
+</script>

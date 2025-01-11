@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% set title = 'Группировка по страницам' %}
+
+{% block content %}
+	<div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <div class="permissions-header mb-4">
+                        <h1 class="page-title">Создать новую праву</h1>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-12 col-sm-6 mt-4">
+                <div class="card">
+                    <div class="card-body">
+
+                        <form action="" method="POST">
+                            <div class="mb-3">
+                                <label for="">Название</label>
+                                <input name="name" class="form-control" required type="text">
+                            </div>
+                            <div class="mb-3">
+                                <label for="">Функция</label>
+                                <input name="function" class="form-control" required type="text">
+                            </div>
+                            <div class="mb-3">
+                                <label for="">Описание</label>
+                                <input name="description" class="form-control" type="text">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 col-sm-6">
+                                    <div class="mb-3">
+                                        <label for="">Страница</label>
+                                        <select name="page" id="" class="form-control" required>
+                                            <option value="admin">Админстратор</option>
+                                            <option value="shifts">Смены</option>
+                                            <option value="departments">Отделы</option>
+                                            <option value="users">Сотрудники</option>
+                                            <option value="tasks">Задачи</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-sm-6">
+                                    <div class="mb-3">
+                                        <label for="">Действие</label>
+                                        <select name="method" id="" required class="form-control">
+                                            <option value="1">Создание</option>
+                                            <option value="2">Просмотр</option>
+                                            <option value="3">Изменение</option>
+                                            <option value="4">Удаление</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <button class="btn btn-primary">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,286 @@
+{# _modals.html #}
+
+{# Модальное окно редактирования задачи #}
+<div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="/api/task/{{ task.id }}/update" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTaskModalLabel">Редактирование задачи</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Название задачи</label>
+                        <input type="text" class="form-control" name="title" value="{{ task.title }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea class="form-control" name="description" rows="4">{{ task.description }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Приоритет</label>
+                            <select class="form-select" name="priority" required>
+                                {% for priority in ['urgent', 'high', 'medium', 'low'] %}
+                                    <option value="{{ priority }}" {% if task.priority == priority %}selected{% endif %}>
+                                        {{ {'urgent': 'Срочный', 'high': 'Высокий', 'medium': 'Средний', 'low': 'Низкий'}[priority] }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Дедлайн</label>
+                            <input type="datetime-local" class="form-control" name="deadline"
+                                   value="{{ task.deadline.strftime('%Y-%m-%dT%H:%M') if task.deadline else '' }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# Модальное окно добавления участника #}
+<div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="/api/task/{{ task.id }}/members/add" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addMemberModalLabel">Добавление участника</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Выберите сотрудника</label>
+                        <select class="form-select" name="user_id" required>
+                            <option value="">Выберите сотрудника...</option>
+                            {% for department in departments %}
+                                <optgroup label="{{ department.name }}">
+                                    {% for user in department.users %}
+                                        <option value="{{ user.id }}">{{ user.full_name }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Роль в задаче</label>
+                        <select class="form-select" name="role" required>
+                            <option value="responsible">Ответственный</option>
+                            <option value="executor">Исполнитель</option>
+                            <option value="observer">Наблюдатель</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addChecklistModal" tabindex="-1" aria-labelledby="addChecklistModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="/api/task/{{ task.id }}/checklist/add" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addChecklistModalLabel">Создание чек-листа</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Название чек-листа</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Отдел (опционально)</label>
+                        <select class="form-select" name="department_id">
+                            <option value="">Без отдела</option>
+                            {% for department in task.departments.departments %}
+                                <option value="{{ department.id }}">{{ department.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Создать чек-лист</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addItemModalLabel">Добавить подзадачу</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addItemForm" method="post" action="/api/task/{{ task.id }}/checklist/add/item">
+                    <input type="hidden" id="checklistId" name="checklist_id">
+                    <div class="mb-3">
+                        <label for="itemContent" class="form-label">Содержание подзадачи</label>
+                        <textarea class="form-control" id="itemContent" name="content" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" form="addItemForm" class="btn btn-primary">Добавить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Модальное окно архивации задачи #}
+<div class="modal fade" id="archiveTaskModal" tabindex="-1" aria-labelledby="archiveTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="/api/task/{{ task.id }}/archive" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="archiveTaskModalLabel">Архивация задачи</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Вы уверены, что хотите архивировать эту задачу?</p>
+                    <div class="alert alert-warning">
+                        <ion-icon name="warning-outline"></ion-icon>
+                        <div class="alert-content">
+                            <strong>Внимание!</strong>
+                            <p class="mb-0">После архивации задача будет доступна только для просмотра.
+                            Все участники получат уведомление об архивации.</p>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Причина архивации</label>
+                        <textarea class="form-control" name="archive_reason" rows="3"
+                                  placeholder="Укажите причину архивации задачи..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-danger">Архивировать задачу</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Общие стили для модальных окон */
+.modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.25rem 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-color);
+    padding: 1.25rem 1.5rem;
+}
+
+.modal-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Стили для алертов в модальных окнах */
+.alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+}
+
+.alert ion-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-content strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+/* Стили для форм в модальных окнах */
+.form-label {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.form-control,
+.form-select {
+    border-color: var(--border-color);
+    padding: 0.625rem 1rem;
+    border-radius: 8px;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.form-text {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Стили для кнопок в модальных окнах */
+.modal-footer .btn {
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .modal-dialog {
+        margin: 1rem;
+    }
+
+    .modal-body {
+        padding: 1rem;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+    }
+}
+</style>

@@ -1,0 +1,127 @@
+<!-- Колонка "Надо сделать" -->
+<div class="task-list">
+    <h5 class="task-list-head">
+        <ion-icon name="list-outline" style="color: var(--warning-color)"></ion-icon>
+        Надо сделать
+        <div class="count badge text-bg-warning count">0</div>
+    </h5>
+    <div id="new" data-id="new" class="task-list-dragdrop">
+        {% for task in tasks %}
+            <div class="task" >
+                <div class="task-header">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <a href="/tasks/{{ task.task_platform_id }}" style="text-decoration: none" class="task-title">
+                            {{ task.title }}
+                        </a>
+                    </div>
+                </div>
+                <div class="task-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="task-platform-id">#{{ task.task_platform_id }}</div>
+                        <div class="task-data d-flex align-items-center gap-3">
+                            <span class="d-flex align-items-center gap-1"><ion-icon name="eye-outline"></ion-icon> {{ task.members }}</span>
+                            <span class="d-flex align-items-center gap-1"><ion-icon name="chatbubbles-outline"></ion-icon> {{ task.comments }}</span>
+                            <span class="d-flex align-items-center gap-1"><ion-icon name="document-attach-outline"></ion-icon> {{ task.files }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    {% if my == False %}
+        {% if my_department and permission[1].create_task_for_own_department == 'true' %}
+            <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <ion-icon name="add-outline"></ion-icon>
+                <span>Добавить задачу</span>
+            </button>
+        {% else %}
+            {% if permission[2].create_task_for_all_departments == 'true' %}
+                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                    <ion-icon name="add-outline"></ion-icon>
+                    <span>Добавить задачу</span>
+                </button>
+            {% endif %}
+        {% endif %}
+
+    {% else %}
+        {% if permission[0].create_task_for_own == 'true' %}
+            <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <ion-icon name="add-outline"></ion-icon>
+                <span>Добавить задачу</span>
+            </button>
+        {% endif %}
+    {% endif %}
+</div>
+
+<!-- Колонка "В работе" -->
+<div class="task-list">
+    <h5 class="task-list-head">
+        <ion-icon name="time-outline" style=""></ion-icon>
+        В работе
+        <div class="count badge text-bg-info">0</div>
+    </h5>
+    <div id="inprocess" data-id="inprocess" class="task-list-dragdrop"></div>
+</div>
+
+<!-- Колонка "На проверке" -->
+<div class="task-list">
+    <h5 class="task-list-head">
+        <ion-icon name="eye-outline" style="color: var(--primary-color)"></ion-icon>
+        На проверке
+        <div class="count badge text-bg-primary">0</div>
+    </h5>
+    <div id="testing" data-id="testing" class="task-list-dragdrop"></div>
+</div>
+
+<!-- Колонка "Готово" -->
+<div class="task-list">
+    <h5 class="task-list-head">
+        <ion-icon name="checkmark-circle-outline" style="color: var(--success-color)"></ion-icon>
+        Готово
+        <div class="count badge text-bg-success">0</div>
+    </h5>
+    <div id="done" data-id="done" class="task-list-dragdrop"></div>
+</div>
+
+<div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form class="modal-content" id="addTaskForm" method="post" action="/api/tasks">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTaskModalLabel">Добавить новую задачу</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <input type="text" name="department_id" value="{{ department_id }}" class="form-control">
+                    <div class="mb-3">
+                        <label for="taskTitle" class="form-label">Название задачи</label>
+                        <input type="text" class="form-control" name="title" id="taskTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="taskDescription" class="form-label">Описание</label>
+                        <textarea class="form-control" id="taskDescription" name="desc" rows="3"></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="taskPriority" class="form-label">Приоритет</label>
+                            <select class="form-select" name="priority" id="taskPriority">
+                                <option value="low">Низкий</option>
+                                <option value="medium">Средний</option>
+                                <option value="high">Высокий</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="taskDeadline" class="form-label">Срок выполнения</label>
+                            <input type="datetime-local" class="form-control" name="deadline" id="taskDeadline">
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary" id="saveTaskBtn">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>

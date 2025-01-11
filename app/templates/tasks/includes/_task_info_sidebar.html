@@ -1,0 +1,705 @@
+{# _task_info_sidebar.html #}
+<div class="task-sidebar">
+    {# Блок дедлайна #}
+    <div class="sidebar-card deadline-card">
+        <div class="card-content">
+            <div class="card-header-custom">
+                <ion-icon name="timer-outline"></ion-icon>
+                <h5>Дедлайн</h5>
+            </div>
+            {% if task.deadline %}
+                {% set time_left = (task.deadline - now).total_seconds() %}
+                <div class="deadline-info">
+                    <div class="deadline-circle {% if time_left < 0 %}danger{% elif time_left < 86400 %}warning{% else %}success{% endif %}">
+                        <div class="deadline-circle-inner">
+                            {% if time_left < 0 %}
+                                <ion-icon name="alert-circle-outline"></ion-icon>
+                            {% else %}
+                                <ion-icon name="time-outline"></ion-icon>
+                            {% endif %}
+                            <span class="deadline-days">
+                                {% if time_left < 0 %}
+                                    {{ (-time_left/86400)|round|int }}
+                                {% else %}
+                                    {{ (time_left/86400)|round|int }}
+                                {% endif %}
+                            </span>
+                            <span class="deadline-label">дней</span>
+                        </div>
+                    </div>
+                    <div class="deadline-date">
+                        {{ task.deadline.strftime('%H:%M - %d.%m.%Y') }}
+                    </div>
+                </div>
+            {% else %}
+                <div class="no-deadline">
+                    <ion-icon name="infinite-outline"></ion-icon>
+                    <span>Без дедлайна</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Блок статуса и приоритета #}
+    <div class="sidebar-card status-priority-card">
+        <div class="card-content">
+            {# Статус задачи #}
+            <div class="status-section">
+                <label class="control-label">
+                    <ion-icon name="flag-outline"></ion-icon>
+                    Статус
+                </label>
+                <div class="custom-select-wrapper">
+                    <select class="custom-select status-select"
+                            {% if user.role_id not in [1, 2] and user.id != task.creator.id %}disabled{% endif %}
+                            data-task-id="{{ task.id }}">
+                        {% set status_options = {
+                            'new': 'Новая',
+                            'in_progress': 'В работе',
+                            'on_review': 'На проверке',
+                            'completed': 'Завершена',
+                            'archived': 'В архиве'
+                        } %}
+                        {% for value, label in status_options.items() %}
+                            <option value="{{ value }}" {% if task.status == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            {# Приоритет задачи #}
+            <div class="priority-section">
+                <label class="control-label">
+                    <ion-icon name="analytics-outline"></ion-icon>
+                    Приоритет
+                </label>
+                <div class="custom-select-wrapper">
+                    <select class="custom-select priority-select"
+                            {% if user.role_id not in [1, 2] and user.id != task.creator.id %}disabled{% endif %}
+                            data-task-id="{{ task.id }}">
+                        {% set priority_options = {
+                            'low': 'Низкий',
+                            'medium': 'Средний',
+                            'high': 'Высокий',
+                            'urgent': 'Срочный'
+                        } %}
+                        {% for value, label in priority_options.items() %}
+                            <option value="{{ value }}" {% if task.priority == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Блок отделов #}
+    {% if task.departments.departments|length > 0 %}
+    <div class="sidebar-card departments-card">
+        <div class="card-content">
+            <div class="card-header-custom">
+                <ion-icon name="business-outline"></ion-icon>
+                <h5>Отделы</h5>
+                <span class="counter">{{ task.departments.count }}</span>
+            </div>
+            <div class="departments-list">
+                {% for dept in task.departments.departments %}
+                    <div class="department-item">
+                        <div class="department-header">
+                            <div class="department-title">{{ dept.title }}</div>
+                            <span class="status-badge {{ dept.status }}">
+                                {{ status_options[dept.status] }}
+                            </span>
+                        </div>
+                        <div class="progress-wrapper">
+                            <div class="progress">
+                                <div class="progress-bar" style="width: {{ dept.progress }}%"></div>
+                            </div>
+                            <span class="progress-label">{{ dept.progress }}%</span>
+                        </div>
+                        {% if dept.deadline %}
+                            <div class="department-meta">
+                                <ion-icon name="calendar-outline"></ion-icon>
+                                <span>{{ dept.deadline.strftime('%d.%m.%Y') }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Блок участников #}
+    <div class="sidebar-card members-card">
+        <div class="card-content">
+            <div class="card-header-custom">
+                <ion-icon name="people-outline"></ion-icon>
+                <h5>Участники</h5>
+                <span class="counter">{{ task.members.count }}</span>
+                {% if user.role_id in [1, 2] or user.id == task.creator.id %}
+                    <button class="add-member-btn" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                        <ion-icon name="person-add-outline"></ion-icon>
+                    </button>
+                {% endif %}
+            </div>
+            <div class="members-list">
+                {% for member in task.members.members %}
+                    <div class="member-card">
+                        <div class="member-info">
+                            <div class="member-avatar" title="{{ member.full_name }}">
+                                {{ member.initials }}
+                            </div>
+                            <div class="member-details">
+                                <div class="member-name">{{ member.full_name }}</div>
+                                <div class="member-meta">
+                                    {% if member.department %}
+                                        <span class="meta-tag department">{{ member.department }}</span>
+                                    {% endif %}
+                                    <span class="meta-tag role">{{ member.role|title }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="member-stats">
+                            <ion-icon name="time-outline"></ion-icon>
+                            <span>{{ member.time_spent }} мин</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.task-sidebar {
+    height: 100%;
+    padding-right: 1rem;
+}
+
+.sidebar-card {
+    background: var(--bg-light);
+    border-radius: 1rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.sidebar-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.card-content {
+    padding: 1.5rem;
+}
+
+.card-header-custom {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-header-custom h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.card-header-custom ion-icon {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.counter {
+    background: var(--primary-light);
+    color: var(--primary-color);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    margin-left: auto;
+}
+
+/* Стили для блока дедлайна */
+.deadline-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.deadline-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.deadline-circle.success {
+    background: linear-gradient(135deg, #34d399, #10b981);
+}
+
+.deadline-circle.warning {
+    background: linear-gradient(135deg, #fcd34d, #f59e0b);
+}
+
+.deadline-circle.danger {
+    background: linear-gradient(135deg, #fb7185, #ef4444);
+}
+
+.deadline-circle-inner {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: var(--bg-light);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+}
+
+.deadline-days {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-top: 0.25rem;
+}
+
+.deadline-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.deadline-date {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.no-deadline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    padding: 2rem 0;
+}
+
+.no-deadline ion-icon {
+    font-size: 2.5rem;
+    opacity: 0.5;
+}
+
+/* Стили для селектов */
+.control-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.control-label ion-icon {
+    color: var(--primary-color);
+}
+
+.custom-select-wrapper {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.custom-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: 500;
+    appearance: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.custom-select:hover {
+    border-color: var(--primary-color);
+}
+
+.custom-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.custom-select-wrapper::after {
+    content: '';
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--text-secondary);
+    pointer-events: none;
+}
+
+/* Стили для отделов */
+.departments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.department-item {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.department-item:hover {
+    transform: translateX(4px);
+    background: var(--primary-light);
+}
+
+.department-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.department-title {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.status-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+}
+
+.progress-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.progress {
+    flex-grow: 1;
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(to right, var(--primary-color), var(--primary-hover));
+    border-radius: 1rem;
+    transition: width 0.6s ease;
+}
+
+.progress-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    min-width: 3rem;
+    text-align: right;
+}
+
+.department-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* Стили для участников */
+.members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.member-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+/* Продолжение стилей */
+
+.member-card:hover {
+    {#transform: translateX(4px);#}
+    background: var(--primary-light);
+}
+
+.member-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.member-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.member-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.member-meta {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.meta-tag {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.meta-tag.department {
+    background: var(--bg-light);
+    color: var(--text-secondary);
+}
+
+.meta-tag.role {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.member-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.add-member-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.add-member-btn:hover {
+    transform: scale(1.1);
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Статус-бейджи */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-badge.new {
+    background: var(--bg-light);
+    color: var(--text-secondary);
+}
+
+.status-badge.in_progress {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.status-badge.on_review {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.status-badge.completed {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.status-badge.archived {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.task-sidebar {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Адаптивность */
+@media (max-width: 991.98px) {
+    .task-sidebar {
+        padding-right: 0;
+    }
+
+    .sidebar-card {
+        margin-bottom: 1rem;
+    }
+
+    .deadline-circle {
+        width: 100px;
+        height: 100px;
+    }
+
+    .deadline-circle-inner {
+        width: 80px;
+        height: 80px;
+    }
+
+    .deadline-days {
+        font-size: 1.75rem;
+    }
+}
+
+/* Кастомный скроллбар для списков */
+.departments-list,
+.members-list {
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) var(--bg-secondary);
+}
+
+.departments-list::-webkit-scrollbar,
+.members-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.departments-list::-webkit-scrollbar-track,
+.members-list::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.departments-list::-webkit-scrollbar-thumb,
+.members-list::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+    border-radius: 20px;
+}
+
+/* Эффекты при наведении */
+.sidebar-card .card-content {
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar-card .card-content::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        transparent 80%,
+        rgba(255, 255, 255, 0.05)
+    );
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-card:hover .card-content::after {
+    opacity: 1;
+}
+
+/* Улучшенные стили для disabled состояний */
+.custom-select:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background: var(--bg-light);
+}
+
+/* Интерактивные эффекты для элементов списка */
+.department-item,
+.member-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.department-item::before,
+.member-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to right,
+        transparent,
+        rgba(37, 99, 235, 0.1),
+        transparent
+    );
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.department-item:hover::before,
+.member-card:hover::before {
+    transform: translateX(100%);
+}
+</style>

@@ -134,35 +134,28 @@
                         {{ task.description }}
                     </div>
                     <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-3 text-secondary">
+                        <div><span class="text-primary">{{ task.checklists.completed }}</span> / {{ task.checklists.count }}</div>
+                        <div>{{ task.checklists.completed_percent }}%</div>
+                    </div>
                     <div class="progress" role="progressbar" style="height: 5px !important;" aria-label="Basic example" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                        <div class="progress-bar" style="width: 0%"></div>
+                        <div class="progress-bar" style="width: {{ task.checklists.completed_percent }}%"></div>
                     </div>
                     <div class="mt-4 checbox-progress">
-                        <div class="card-title mb-3">Подзадачи</div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault1">
-                            <label class="form-check-label" for="flexCheckDefault1">
-                                Default checkbox
-                            </label>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div><div class="card-title mb-3">Подзадачи</div></div>
+                            <div class="d-md-block d-none">
+                                <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addChecklistItemModal">Добавить подзадачу</button>
+                            </div>
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault2">
-                            <label class="form-check-label" for="flexCheckDefault2">
-                                Default checkbox
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault3">
-                            <label class="form-check-label" for="flexCheckDefault3">
-                                Default checkbox
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault4">
-                            <label class="form-check-label" for="flexCheckDefault4">
-                                Default checkbox
-                            </label>
-                        </div>
+                        {% for checklist in task.checklists.data %}
+                            <div class="form-check">
+                                <input class="form-check-input" data-id="{{ checklist.id }}" {% if checklist.is_completed %} checked disabled {% endif %} type="checkbox" value="" id="subtask{{ checklist.id }}">
+                                <label class="form-check-label" for="subtask{{ checklist.id }}">
+                                    {{ checklist.item }}
+                                </label>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -177,6 +170,10 @@
                         }
                         .comment-area{
                             min-height: 100px;
+                            max-height: 300px;
+                            overflow-y: scroll;
+                            border-bottom: 1px solid #6b7280;
+                            margin-bottom: 15px;
                         }
                         .tab{
                             display: none;
@@ -200,18 +197,21 @@
                     <hr>
                     <div class="tab active" id="comment">
                         <div class="comment-area">
-
+                            {% for comment in task.comments.data %}
+                            <div class="member-item">
+                                <div class="member-avatar" title="{{ comment.full_name }}">{{ comment.initials }}</div>
+                                <div class="member-info">
+                                    <div class="activity-text">{{ comment.text }}</div>
+                                    <div class="activity-date">{{ comment.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
                         <div class="commet-form">
                             <form action="/api/add/comment/{{ task.id }}" method="POST" enctype="multipart/form-data">
                                 <textarea name="comment" id="comment" rows="4" class="form-control" required></textarea>
                                 <div class="d-flex justify-content-end align-items-center gap-3 mt-3">
-                                    <label for="file" class="btn btn-light">
-                                        <span>
-                                            <ion-icon name="attach-outline" style="font-size: 20px"></ion-icon>
-                                        </span>
-                                        <input type="file" id="file" name="file" hidden>
-                                    </label>
+
                                     <button type="submit" class="btn btn-primary d-flex justify-content-between align-items-center gap-2">
                                         <ion-icon name="arrow-up-circle-outline" style="font-size: 20px"></ion-icon>
                                         Отправить
@@ -222,24 +222,35 @@
                         </div>
                     </div>
                     <div class="tab" id="files">
-                        <div class="d-flex gap-3 align-items-center justify-content-between mt-3 mb-4">
-                            <div class="left-side d-flex gap-3 align-items-center">
-                                <ion-icon name="document-outline" style="font-size: 32px; display: flex; justify-content: center; align-items: center"></ion-icon>
-                                <span class="">Название документа</span>
+                        {% for file in task.files.data %}
+                            <div class="d-flex gap-3 align-items-center justify-content-between mt-3 mb-4">
+                                <div class="left-side d-flex gap-3 align-items-center">
+                                    <ion-icon name="document-outline" style="font-size: 36px; display: flex; justify-content: center; align-items: center"></ion-icon>
+                                    <div class="">
+                                        <div class="file-title m-0 p-0" style="line-height: 12px; font-weight: bolder">{{ file.original_file_name }}</div>
+                                        <span style="color: #2D3748; font-size: 12px; line-height: 12px">{{ file.full_name }}</span>
+                                    </div>
+                                </div>
+                                <div class="right-side">
+                                    <a href="/static/files/{{ file.file_url }}" download="" target="_blank">
+                                        <ion-icon name="cloud-download-outline" style="font-size: 25px; color: red; display: flex; justify-content: center; align-items: center"></ion-icon>
+                                    </a>
+                                </div>
                             </div>
-                            <div class="right-side">
-                                <ion-icon name="cloud-download-outline" style="font-size: 25px; color: red; display: flex; justify-content: center; align-items: center"></ion-icon>
+                        {% endfor %}
+
+                        <hr>
+                        <form action="/api/add/file/{{ task.id }}" method="POST" enctype="multipart/form-data">
+                            <div class="d-flex justify-content-between align-items-center gap-3 mt-3">
+                                <label for="file">
+                                    <input type="file" id="file" class="form-control" name="file">
+                                </label>
+                                <button type="submit" class="btn btn-primary d-flex justify-content-between align-items-center gap-2">
+                                    <ion-icon name="arrow-up-circle-outline" style="font-size: 20px"></ion-icon>
+                                    Отправить
+                                </button>
                             </div>
-                        </div>
-                        <div class="d-flex gap-3 align-items-center justify-content-between mb-2">
-                            <div class="left-side d-flex gap-3 align-items-center">
-                                <ion-icon name="document-outline" style="font-size: 32px; display: flex; justify-content: center; align-items: center"></ion-icon>
-                                <span class="">Название документа</span>
-                            </div>
-                            <div class="right-side">
-                                <ion-icon name="cloud-download-outline" style="font-size: 25px; color: red; display: flex; justify-content: center; align-items: center"></ion-icon>
-                            </div>
-                        </div>
+                        </form>
                     </div>
                     <div class="tab" id="history">
                         <div class="activity-timeline">
@@ -265,7 +276,7 @@
 <!-- Edit Task Modal -->
 <div class="modal fade" id="editTaskModal" tabindex="-1">
     <div class="modal-dialog">
-        <form class="modal-content">
+        <form class="modal-content" action="/api/task/edit/{{ task.id }}" method="POST">
             <div class="modal-header">
                 <h5 class="modal-title">Редактировать задачу</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -300,37 +311,18 @@
     </div>
 </div>
 
-<!-- Archive Confirmation Modal -->
-<div class="modal fade" id="archiveTaskModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Архивировать задачу</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Вы уверены, что хотите архивировать эту задачу? Это действие нельзя отменить.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-danger">Архивировать</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Add Checklist Item Modal -->
 <div class="modal fade" id="addChecklistItemModal" tabindex="-1">
     <div class="modal-dialog">
-        <form class="modal-content">
+        <form class="modal-content" action="/api/add/checklist/{{ task.id }}" method="POST">
             <div class="modal-header">
                 <h5 class="modal-title">Добавить пункт</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label">Текст</label>
-                    <input type="text" class="form-control" name="text" placeholder="Введите текст...">
+                    <label class="form-label">Задача</label>
+                    <input type="text" class="form-control" name="text" placeholder="Введите задачу...">
                 </div>
             </div>
             <div class="modal-footer">
@@ -657,6 +649,15 @@ $(document).ready(function(){
         $('.tab').removeClass('active');
         $(id).addClass('active');
 
+    })
+    $('.form-check-input').on('change', function (){
+        $.ajax({
+            url: `/api/edit/checklist/${$(this).data('id')}`,
+            method: 'POST',
+            success: function(){
+                window.location.reload()
+            }
+        })
     })
 })
 document.addEventListener('DOMContentLoaded', function() {

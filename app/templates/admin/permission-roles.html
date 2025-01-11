@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% set title = 'Права по ролям' %}
+{% block content %}
+<div class="container permissions-wrapper">
+    <form method="POST" action="">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <div class="permissions-header mb-4">
+                        <h1 class="page-title">Управление разрешениями</h1>
+                    </div>
+                    <div>
+                        <a href="/admin/permissions/add" class="btn btn-primary">Добавить права</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5 mb-5"></div>
+            <div class="col-md-7 mb-4">
+                <div class="role-header-card">
+                    <div class="row g-0">
+                        <div class="col-4">
+                            <div class="role-title">
+                                <ion-icon name="briefcase-outline"></ion-icon>
+                                <span>Директор</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="role-title">
+                                <ion-icon name="people-outline"></ion-icon>
+                                <span>Руководитель</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="role-title">
+                                <ion-icon name="person-outline"></ion-icon>
+                                <span>Пользователь</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% for permis in permissions %}
+            <div class="col-md-5 mb-3">
+                <div class="permission-card">
+                    <div class="permission-info h-100 d-flex align-items-center">
+                        <ion-icon name="shield-checkmark-outline" class="permission-icon"></ion-icon>
+                        <h5 class="permission-name">{{ permis.name }}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-7 mb-3">
+                <div class="permission-toggles">
+                    <div class="row g-0">
+                        <div class="col-4">
+                            <div class="toggle-wrapper">
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" {% if permis.director %} checked {% endif %} name="director_{{ permis.id }}">
+                                    <span class="checkmark"></span>
+                                    <span class="role-label">Директор</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="toggle-wrapper">
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" {% if permis.manager %} checked {% endif %} name="manager_{{ permis.id }}">
+                                    <span class="checkmark"></span>
+                                    <span class="role-label">Руководитель</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="toggle-wrapper">
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" {% if permis.user %} checked {% endif %} name="user_{{ permis.id }}">
+                                    <span class="checkmark"></span>
+                                    <span class="role-label">Сотрудник</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="col-12 mt-4">
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary save-btn">
+                        <ion-icon name="save-outline"></ion-icon>
+                        Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block css %}
+<style>
+    .permissions-wrapper {
+        padding: 2rem 0;
+    }
+
+    .permissions-header {
+        margin-bottom: 2rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0;
+    }
+
+    .role-header-card {
+        background: var(--bg-light);
+        border-radius: 1rem;
+        border: 1px solid var(--border-color);
+        padding: 1.25rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .role-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .role-title ion-icon {
+        font-size: 1.25rem;
+        color: var(--primary-color);
+    }
+
+    .permission-card {
+        background: var(--bg-light);
+        border-radius: 1rem;
+        border: 1px solid var(--border-color);
+        padding: 1.5rem;
+        height: 100%;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+    }
+
+    .permission-card:hover {
+        transform: translateX(4px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .permission-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .permission-icon {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+    }
+
+    .permission-name {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .permission-toggles {
+        background: var(--bg-light);
+        border-radius: 1rem;
+        border: 1px solid var(--border-color);
+        padding: 1.25rem;
+        height: 100%;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .toggle-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0.5rem;
+    }
+
+    .custom-checkbox {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+
+    .custom-checkbox input {
+        display: none;
+    }
+
+    .checkmark {
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--border-color);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        position: relative;
+        background: var(--bg-light);
+    }
+
+    .checkmark:after {
+        content: '';
+        position: absolute;
+        display: none;
+        width: 6px;
+        height: 12px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+        top: 3px;
+    }
+
+    .custom-checkbox input:checked ~ .checkmark {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .custom-checkbox input:checked ~ .checkmark:after {
+        display: block;
+    }
+
+    .role-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        text-align: center;
+    }
+
+    .save-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+    }
+
+    .save-btn ion-icon {
+        font-size: 1.25rem;
+    }
+
+    @media (max-width: 768px) {
+        .permissions-wrapper {
+            padding: 1rem 0;
+        }
+
+        .role-title {
+            font-size: 0.875rem;
+        }
+
+        .role-title ion-icon {
+            font-size: 1rem;
+        }
+
+        .permission-card {
+            padding: 1rem;
+        }
+
+        .permission-toggles {
+            padding: 1rem;
+        }
+
+        .permission-name {
+            font-size: 0.875rem;
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+        }
+
+        .role-label {
+            font-size: 0.7rem;
+        }
+
+        .save-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}

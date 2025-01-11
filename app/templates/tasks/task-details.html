@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ task.title }} - Детали задачи{% endblock %}
+
+{% block content %}
+<div class="container">
+<div class="task-wrapper">
+    {# Верхняя панель с основной информацией о задаче #}
+    {% include 'tasks/includes/_task_header.html' %}
+
+    <div class="container-fluid mt-4">
+        <div class="row g-4">
+            {# Левая боковая панель #}
+            <div class="col-12 col-lg-3">
+                {% include 'tasks/includes/_task_info_sidebar.html' %}
+            </div>
+
+            {# Основной контент #}
+            <div class="col-12 col-lg-9">
+                <div class="content-wrapper">
+                    {# Описание задачи #}
+                    <div class="card mb-4">
+                        {% include 'tasks/includes/_task_description.html' %}
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <ul class="nav nav-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#comments-tab" type="button" role="tab">
+                                        <ion-icon name="chatbubbles-outline"></ion-icon>
+                                        Комментарии
+                                        <span class="badge bg-secondary ms-1">{{ task.comments.count }}</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#files-tab" type="button" role="tab">
+                                        <ion-icon name="document-attach-outline"></ion-icon>
+                                        Файлы
+                                        <span class="badge bg-secondary ms-1">{{ task.files.count }}</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#history-tab" type="button" role="tab">
+                                        <ion-icon name="time-outline"></ion-icon>
+                                        История
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content mt-3">
+                                <div class="tab-pane fade show active" id="comments-tab" role="tabpanel">
+                                    {% include 'tasks/includes/_task_comments.html' %}
+                                </div>
+                                <div class="tab-pane fade" id="files-tab" role="tabpanel">
+                                    {% include 'tasks/includes/_task_files.html' %}
+                                </div>
+                                <div class="tab-pane fade" id="history-tab" role="tabpanel">
+                                    {% include 'tasks/includes/_task_history.html' %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+{# Модальные окна #}
+{% include 'tasks/includes/_modals.html' %}
+{% endblock %}
+
+{% block css %}
+<style>
+/* Основные стили для страницы задачи */
+.task-wrapper {
+    background-color: var(--bg-secondary);
+    min-height: calc(100vh - 60px);
+    padding-bottom: 2rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Стили для вкладок */
+.nav-tabs {
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.5rem;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--primary-color);
+    background-color: var(--primary-light);
+    transform: translateY(-1px);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    background-color: var(--primary-light);
+    font-weight: 600;
+    position: relative;
+}
+
+.nav-tabs .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+}
+
+.nav-tabs .nav-link ion-icon {
+    font-size: 1.35rem;
+    transition: transform 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover ion-icon {
+    transform: scale(1.1);
+}
+
+/* Карточки контента */
+.card {
+    background-color: var(--bg-light);
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+/* Анимации для табов */
+.tab-pane {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Адаптивность */
+@media (max-width: 991.98px) {
+    .content-wrapper {
+        margin-top: 1rem;
+    }
+
+    .nav-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-tabs .nav-link {
+        white-space: nowrap;
+    }
+
+    .card {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Кастомный скроллбар */
+::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-hover);
+}
+</style>
+{% endblock %}
+
+{% block js %}
+<script>
+$(document).ready(function() {
+    // Инициализация тултипов
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Обработка переключения вкладок
+    $('.nav-tabs .nav-link').on('click', function(e) {
+        e.preventDefault();
+        $(this).tab('show');
+    });
+
+    // Сохранение активной вкладки в localStorage
+    $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+        localStorage.setItem('lastTaskTab', $(e.target).attr('data-bs-target'));
+    });
+
+    // Восстановление последней активной вкладки
+    let lastTab = localStorage.getItem('lastTaskTab');
+    if (lastTab) {
+        $(`[data-bs-target="${lastTab}"]`).tab('show');
+    }
+});
+</script>
+{% endblock %}

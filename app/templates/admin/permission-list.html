@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% set title = 'Админ' %}
+
+{% block content %}
+	<div class="container">
+    <div class="row">
+        <div class="col-md-4 col-sm-6">
+            <div class="card h-100">
+                <div class="card-header">
+                     <div class="card-title h5">Права по ролям</div>
+                </div>
+                <div class="card-body">
+                    <div class="description">
+                        Права по ролям представляют собой систему, в которой доступ к ресурсам и функционалу системы определяется на основе ролей, присвоенных пользователям. Роль — это набор прав, который определяет, что пользователь с этой ролью может и не может делать в системе.
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="/admin/permission/roles" class="btn btn-primary w-100">Изменить права</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6">
+            <div class="card h-100">
+                <div class="card-header">
+                     <div class="card-title h5">Права по пользователю</div>
+                </div>
+                <div class="card-body">
+                    <div class="description">
+                        Права по пользователю подразумевают, что доступ к определенным функциям и данным определяется индивидуально для каждого пользователя, а не через роль. Это может быть полезно, когда необходимо предоставить или ограничить доступ на основе конкретных потребностей или задач пользователя.
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="" class="btn btn-primary w-100">Дать права пользователю</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6">
+            <div class="card h-100">
+                <div class="card-header">
+                     <div class="card-title h5">Права по отделу</div>
+                </div>
+                <div class="card-body">
+                    <div class="description">
+                        Права по отделу предоставляют доступ к функциональности или ресурсам в зависимости от того, к какому отделу принадлежит пользователь. Это удобно для отделов, где различные они имеют доступ только к своим внутренним данным или ресурсам.
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="" class="btn btn-primary w-100">Дать права отделу</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+{% endblock %}

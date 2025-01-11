@@ -1,55 +1,129 @@
 import json
-
 from flask import Blueprint, request, redirect, url_for, render_template, jsonify, make_response
-from app.db import Employee
+from app.db import User, db, UserPermission, Permission, RolePermission
 from app.utils import hash_password, check_password, generate_tokens, verify_token
 from app.utils.jwttoken import token_required
 
 auth_bp = Blueprint('auth_bp', __name__, url_prefix='/app')
 
+
+def get_user_permission(user_id):
+    try:
+        # Делаем JOIN для оптимизации запросов
+        permissions = db.session.query(
+            Permission.function,
+            Permission.name,
+            UserPermission.is_granted
+        ).join(
+            UserPermission,
+            Permission.id == UserPermission.permission_id
+        ).filter(
+            UserPermission.user_id == user_id
+        ).all()
+
+        return [
+            {
+                'function': perm.function,
+                'name': perm.name,
+                'is_granted': str(perm.is_granted).lower()  # Преобразуем в строку 'true' или 'false'
+            }
+            for perm in permissions
+        ]
+    except Exception as e:
+        print(f"Error getting permissions: {str(e)}")
+        return []
+
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    errors = []  # Общие ошибки формы
-    field_errors = {}  # Ошибки для конкретных полей
+    errors = []
+    field_errors = {}
 
     if request.method == 'POST':
-        phone = request.form.get('phone')
-        password = request.form.get('password')
+        try:
+            phone = request.form.get('phone', '').strip()
+            password = request.form.get('password', '').strip()
 
-        # Проверка наличия данных
-        if not phone:
-            field_errors['phone'] = 'Введите номер телефона.'
-        if not password:
-            field_errors['password'] = 'Введите пароль.'
+            # Валидация
+            if not phone:
+                field_errors['phone'] = 'Введите номер телефона.'
+            if not password:
+                field_errors['password'] = 'Введите пароль.'
 
-        if not field_errors:  # Если нет ошибок валидации, продолжаем проверку
-            user = Employee(phone=phone).get_user_by_phone()
+            if not field_errors:
+                user = User.query.filter_by(phone=phone).first()
 
-            if user and check_password(password, user.password):
-                payload = {
-                    'id': user.id,
-                    'full_name': " ".join(filter(None, [user.second_name, user.first_name])),
-                    'job_title': user.job_title,
-                    'is_admin': user.is_admin,
-                    'role_id': user.role_id,
-                    'department': user.department_id,
-                    'vaxta_id': user.vaxta_id,
-                }
-                tokens = generate_tokens(payload=payload, secret_key='worklog')
+                if user and user.check_password(password):
+                    UserPermission.query.filter_by(user_id=user.id).delete()
+                    if user.role_id != 1:
+                        ps = RolePermission.query.filter_by(role_id=user.role_id).all()
+                        for permission in ps:
+                            user_perm = UserPermission(
+                                user_id=user.id,
+                                permission_id=permission.permission_id,
+                                is_granted=permission.is_granted
+                            )
+                            db.session.add(user_perm)
+                        db.session.commit()
+                    else:
+                        permissions = Permission.query.all()
+                        if permissions:
+                            for permission in permissions:
+                                user_perm = UserPermission(
+                                    user_id=user.id,
+                                    permission_id=permission.id,
+                                    is_granted=True
+                                )
+                                db.session.add(user_perm)
+                            db.session.commit()
 
-                response = make_response(redirect('/'))
-                response.set_cookie('access_token', tokens['access_token'])
-                response.set_cookie('refresh_token', tokens['refresh_token'])
-                return response
-            else:
-                field_errors['phone'] = 'Пользователь с таким номером и паролем не найден.'
-        else:
-            errors.append('Исправьте ошибки в форме.')
+                    # Формируем payload
+                    payload = {
+                        'id': user.id,
+                        'full_name': f"{user.second_name} {user.first_name}".strip(),
+                        'job_title': user.job_title,
+                        'is_admin': user.is_admin,
+                        'role_id': user.role_id,
+                        'department_id': user.department_id,
+                        'shift_id': user.shift_id,
+                    }
 
-    return render_template('auth/auth-signin-cover.html', errors=errors, field_errors=field_errors)
+                    # Генерируем токены
+                    tokens = generate_tokens(payload=payload, secret_key='worklog')
 
+                    # Получаем права пользователя
+                    rules = get_user_permission(user.id)
 
+                    # Создаем response
+                    response = make_response(redirect('/'))
 
+                    # Устанавливаем токены
+                    response.set_cookie('access_token', tokens['access_token'],
+                                        httponly=True, secure=True)  # Добавляем безопасность
+                    response.set_cookie('refresh_token', tokens['refresh_token'],
+                                        httponly=True, secure=True)
+
+                    # Устанавливаем права
+                    for rule in rules:
+                        # Используем безопасное имя для cookie
+                        cookie_name = f"perm_{rule['function']}"
+                        response.set_cookie(
+                            cookie_name,
+                            rule['is_granted'],
+                            httponly=True,
+                            secure=True
+                        )
+
+                    return response
+                else:
+                    field_errors['password'] = 'Неверный номер телефона или пароль.'
+        except Exception as e:
+            errors.append(f'Произошла ошибка при входе. Попробуйте позже.')
+            print(f"Login error: {str(e)}")
+
+    return render_template('auth/auth-signin-cover.html',
+                           errors=errors,
+                           field_errors=field_errors)
 @auth_bp.route('/relogin_quick')
 def relogin_quick():
     refresh_token = request.cookies.get('refresh_token')
@@ -61,23 +135,31 @@ def relogin_quick():
 
     # Извлекаем user_id
     user_id = token_data.get('id')
-    user = Employee.query.get(user_id)
+    user = User.query.get(user_id)
+    if not user:
+        return redirect('/app/login')
+
+    # Подготавливаем данные пользователя для токенов
     payload = {
         'id': user.id,
-        'full_name': " ".join(filter(None, [user.second_name, user.first_name])),
+        'full_name': f"{user.second_name} {user.first_name}",
         'job_title': user.job_title,
         'is_admin': user.is_admin,
         'role_id': user.role_id,
-        'department': user.department_id,
-        'vaxta_id': user.vaxta_id,
+        'department_id': user.department_id,
+        'shift_id': user.shift_id,
     }
     tokens = generate_tokens(payload=payload, secret_key='worklog')
-    response = make_response(redirect('/'))
+
+    # Получаем параметр next из запроса
+    next_url = request.args.get('next', '/')  # По умолчанию на главную страницу
+
+    # Устанавливаем новые токены и перенаправляем на страницу, указанную в next
+    response = make_response(redirect(next_url))
     response.set_cookie('access_token', tokens['access_token'])
     response.set_cookie('refresh_token', tokens['refresh_token'])
+
     return response
-
-
 
 @auth_bp.route('/logout', methods=['GET', 'POST'])
 def logout():
@@ -88,15 +170,16 @@ def logout():
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
 def signup():
-    user = Employee(
-        first_name="Бағжан",
+    user = User(
+        first_name='Бағжан',
         second_name='Карл',
         third_name='Саматұлы',
         phone='+77761174378',
         password=hash_password('12345678'),
     )
-    user.save_to_db()
-    return jsonify({'status': 200, 'user': user.id})
+    db.session.add(user)
+    db.session.commit()
+
 
 @auth_bp.route('/protected')
 @token_required

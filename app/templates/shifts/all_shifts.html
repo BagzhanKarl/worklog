@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+{% set title = 'Вахты' %}
+
+{% block content %}
+<div class="container content-wrapper">
+    <div class="row justify-content-between align-items-center mb-4">
+        <div class="col-md-6 col-sm-6 mb-3">
+            <h1 class="page-title">Управление вахтами</h1>
+        </div>
+        <div class="col-md-6 col-sm-6 mb-3 text-end">
+            {% if permission[2].edit_shift == 'true' %}
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                <ion-icon name="settings-outline" class="me-2"></ion-icon>Настройки вахт
+            </button>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <div class="row g-4">
+        {% for item in shifts %}
+            {% if item.iter == True %}
+                {% if user.role_id == 1 or user.role_id == 2 %}
+                    <div class="col-md-6">
+                        <div class="shift-card">
+                            <div class="shift-header">
+                                <div class="shift-title">{{item.title}}</div>
+                                <div class="shift-dates">{{ item.start_day }} - {{ item.end_day }} число</div>
+                            </div>
+                            <div class="shift-body">
+                                <div class="shift-stat">
+                                    <ion-icon name="people-outline"></ion-icon>
+                                    <div class="shift-stat-content">
+                                        <div class="shift-stat-value">{{ item.count }}</div>
+                                        <div class="shift-stat-label">Сотрудников</div>
+                                    </div>
+                                </div>
+                                {% if item.active == True %}
+                                <div class="shift-status active">
+                                    Активная смена
+                                </div>
+                                {% else: %}
+                                <div class="shift-status">
+                                    Следущая смена
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="col-md-6">
+                    <div class="shift-card">
+                        <div class="shift-header">
+                            <div class="shift-title">{{item.title}}</div>
+                            <div class="shift-dates">{{ item.start_day }} - {{ item.end_day }} число</div>
+                        </div>
+                        <div class="shift-body">
+                            <div class="shift-stat">
+                                <ion-icon name="people-outline"></ion-icon>
+                                <div class="shift-stat-content">
+                                    <div class="shift-stat-value">{{ item.count }}</div>
+                                    <div class="shift-stat-label">Сотрудников</div>
+                                </div>
+                            </div>
+                            {% if item.active == True %}
+                            <div class="shift-status active">
+                                Активная смена
+                            </div>
+                            {% else: %}
+                            <div class="shift-status">
+                                Следущая смена
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+
+    </div>
+</div>
+
+<!-- Модальное окно настроек -->
+<div class="modal fade modal-lg" id="settingsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/shifts/update" method="post" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Настройки вахт</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body row">
+                {% for item in shifts %}
+                    <div class="col-6 mb-4">
+                        <h6 class="settings-title">{{ item.title }}</h6>
+                        <div class="mb-2">
+                            <label class="form-label">Название</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="v{{ item.id }}"
+                                value="{{ item.title }}"
+                                required>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="form-label">Начало</label>
+                                <input
+                                    type="number"
+                                    class="form-control"
+                                    name="startv{{ item.id }}"
+                                    min="1"
+                                    max="31"
+                                    value="{{ item.start_day }}"
+                                    required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Конец</label>
+                                <input
+                                    type="number"
+                                    class="form-control"
+                                    name="endv{{ item.id }}"
+                                    min="1"
+                                    max="31"
+                                    value="{{ item.end_day }}"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block css %}
+<style>
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .shift-card {
+        background: var(--bg-light);
+        border-radius: 1rem;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .shift-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+    }
+
+    .shift-header {
+        padding: 1.5rem;
+        background: var(--primary-light);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .shift-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .shift-dates {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .shift-body {
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .shift-stat {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .shift-stat ion-icon {
+        font-size: 2rem;
+        color: var(--primary-color);
+    }
+
+    .shift-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+
+    .shift-stat-label {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .shift-status {
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+    }
+
+    .shift-status.active {
+        background: var(--success-color);
+        color: white;
+    }
+
+    .shift-footer {
+        padding: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .settings-title {
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+
+    .modal-content {
+        border-radius: 1rem;
+        border: none;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid var(--border-color);
+        padding: 1.25rem 1.5rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--border-color);
+        padding: 1.25rem 1.5rem;
+    }
+
+    .form-control {
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+        padding: 0.625rem 1rem;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block js %}
+<script>
+    function showEmployeeList(shift) {
+        // Здесь можно добавить логику для отображения списка сотрудников
+        console.log(`Показать список сотрудников вахты ${shift}`);
+    }
+</script>
+{% endblock %}

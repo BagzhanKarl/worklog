@@ -2,8 +2,13 @@ import jwt
 from datetime import datetime, timedelta
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from functools import wraps
-from flask import request, jsonify, redirect, url_for
 from datetime import datetime
+
+from flask import request, redirect, url_for
+
+from functools import wraps
+from flask import request, redirect, url_for
+import jwt
 
 def token_required(f):
     @wraps(f)
@@ -11,6 +16,9 @@ def token_required(f):
         # Извлекаем токены из cookies
         access_token = request.cookies.get('access_token')
         refresh_token = request.cookies.get('refresh_token')
+
+        # Получаем параметр next, если он есть, или по умолчанию '/'
+        next_url = request.args.get('next', '/')
 
         # Проверяем access токен
         if access_token:
@@ -38,18 +46,18 @@ def token_required(f):
                 if decoded_refresh.get('type') != 'refresh':
                     raise jwt.InvalidTokenError
 
-                # Перенаправляем на быстрый релогин
-                return redirect(url_for('auth_bp.relogin_quick'))
+                # Перенаправляем на быстрый релогин с параметром next
+                return redirect(url_for('auth_bp.relogin_quick', next=next_url))
+
             except jwt.ExpiredSignatureError:
-                return redirect(url_for('auth_bp.login'))  # Refresh токен истек
+                return redirect(url_for('auth_bp.login', next=next_url))  # Refresh токен истек
             except jwt.InvalidTokenError:
-                return redirect(url_for('auth_bp.login'))  # Refresh токен недействителен
+                return redirect(url_for('auth_bp.login', next=next_url))  # Refresh токен недействителен
 
         # Если оба токена неверны или отсутствуют, перенаправляем на страницу входа
-        return redirect(url_for('auth_bp.login'))
+        return redirect(url_for('auth_bp.login', next=next_url))
 
     return decorated_function
-
 
 
 def generate_tokens(payload: dict, secret_key: str, access_expiry: int = 3600, refresh_expiry: int = 604800) -> dict:
@@ -86,7 +94,6 @@ def generate_tokens(payload: dict, secret_key: str, access_expiry: int = 3600, r
         'access_token': access_token,
         'refresh_token': refresh_token
     }
-
 
 def verify_token(token: str, secret_key: str, expected_type: str) -> dict:
     """

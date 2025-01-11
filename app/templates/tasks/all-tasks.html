@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% set title = 'Задачи' %}
+{% block content %}
+    <div class="department-list-buttons">
+        <div class="container">
+            <div class="list">
+                {% if permission[3].view_own_tasks == 'true' %}
+                <div title="Мои задачи" data-dep="0" class="links-dep active">
+                    <ion-icon name="folder-outline"></ion-icon>
+                    Мои задачи
+                </div>
+                {% endif %}
+
+                {% for item in department %}
+                    {% if permission[5].view_all_department_tasks == 'true' %}
+                    <div title="{{ item.description }}" data-dep="{{ item.id }}" class="links-dep">
+                        <ion-icon name="folder-outline"></ion-icon>
+                        {{ item.name }}
+                    </div>
+                    {% endif %}
+                    {% if permission[4].view_own_department_tasks == 'true' and user.department_id == item.id %}
+                    <div title="{{ item.description }}" data-dep="{{ item.id }}" class="links-dep">
+                        <ion-icon name="folder-outline"></ion-icon>
+                        {{ item.name }}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="task-list-container" id="container">
+            <!-- Сюда будет загружаться HTML с задачами -->
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+<script>
+$(document).ready(function() {
+    $('.links-dep').click(function() {
+        $('.links-dep').removeClass('active');
+        $(this).addClass('active');
+        fetchTasks($(this).data('dep'));
+    });
+
+    // Функция для загрузки задач
+    function fetchTasks(departmentId) {
+        $.ajax({
+            url: `http://127.0.0.1:8000/tasks/get/${departmentId}`,
+            method: 'POST',
+            success: function(response) {
+                // Вставляем полученный HTML в контейнер
+                $('#container').html('');
+                $('#container').html(response);
+            },
+            error: function(err) {
+                console.error('Ошибка при загрузке задач:', err);
+            }
+        });
+    }
+
+    // Обработчик отправки формы добавления задачи
+    $('#saveTaskBtn').click(function() {
+        const taskData = {
+            title: $('#taskTitle').val(),
+            description: $('#taskDescription').val(),
+            priority: $('#taskPriority').val(),
+            deadline: $('#taskDeadline').val(),
+            platform_id: $('#taskPlatformId').val(),
+            status: 'new'
+        };
+
+        // Валидация формы
+        if (!taskData.title || !taskData.deadline || !taskData.platform_id) {
+            alert('Пожалуйста, заполните все обязательные поля');
+            return;
+        }
+
+        // AJAX запрос для сохранения задачи
+        $.ajax({
+            url: '/api/tasks/create',
+            method: 'POST',
+            data: taskData,
+            success: function(response) {
+                // Перезагружаем текущий список задач
+                const activeDep = $('.links-dep.active').data('dep');
+                fetchTasks(activeDep);
+
+                // Закрываем модальное окно
+                $('#addTaskModal').modal('hide');
+                // Очищаем форму
+                $('#addTaskForm')[0].reset();
+            },
+            error: function(err) {
+                console.error('Ошибка при создании задачи:', err);
+                alert('Произошла ошибка при создании задачи');
+            }
+        });
+    });
+
+    // Очистка формы при закрытии модального окна
+    $('#addTaskModal').on('hidden.bs.modal', function() {
+        $('#addTaskForm')[0].reset();
+    });
+
+    fetchTasks(0)
+});
+</script>
+{% endblock %}
+
+{% block css %}
+<style>
+:root {
+    --kanban-column-width: 350px;
+    --task-border-radius: 1rem;
+}
+
+.department-list-buttons {
+    position: sticky;
+    background: var(--bg-light);
+    padding: 10px 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.list {
+    display: flex;
+    overflow-x: auto;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.links-dep {
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--task-border-radius);
+    transition: all 0.3s ease;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.links-dep:hover {
+    color: var(--primary-color);
+    background-color: var(--primary-light);
+    transform: translateY(-1px);
+}
+
+.links-dep.active {
+    color: var(--primary-color);
+    background-color: var(--primary-light);
+    font-weight: 600;
+}
+
+.task-list-container {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+    overflow-x: auto;
+    height: calc(100vh - 180px);
+}
+
+.task-list {
+    width: var(--kanban-column-width);
+    flex-shrink: 0;
+}
+
+.task-list-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.task-list-dragdrop {
+    min-height: 200px;
+    padding: 0.5rem;
+    background-color: var(--bg-secondary);
+    border-radius: var(--task-border-radius);
+}
+
+.task {
+    background: var(--bg-light);
+    border-radius: var(--task-border-radius);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.task:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.task-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.task-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin: 1rem 0;
+}
+
+.progress {
+    height: 0.25rem !important;
+    background-color: var(--bg-secondary);
+    border-radius: 0.125rem;
+    margin: 0.5rem 0;
+}
+
+.progress-bar {
+    background-color: var(--primary-color);
+    border-radius: 0.125rem;
+}
+
+.task-footer {
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
+.task-platform-id {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.task-data {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.task-data ion-icon {
+    font-size: 1.1rem;
+}
+
+.btn-icon {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.nav-bar {
+    margin-bottom: 0 !important;
+}
+
+@media (max-width: 768px) {
+    .task-list-container {
+        height: calc(100vh - 220px);
+    }
+
+    .links-dep {
+        padding: 0.5rem 1rem;
+    }
+}
+</style>
+{% endblock %}
