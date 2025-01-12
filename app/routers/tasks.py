@@ -115,7 +115,7 @@ def view_task(task_id):
         "title": task.title,
         "creator": {
             "id": task.creator_id,
-            "full_name": User.query.get(task.creator_id).first_name  # Предполагая, что есть модель User
+            "full_name": User.query.get(task.creator_id).first_name + " " + User.query.get(task.creator_id).second_name  # Предполагая, что есть модель User
         },
         "priority": task.priority.value,
         "status": task.status.value,
@@ -128,7 +128,7 @@ def view_task(task_id):
             "count": len(task_members),
             "members": [{
                 "id": member.user_id,
-                "full_name": User.query.get(member.user_id).first_name,
+                "full_name": User.query.get(member.user_id).first_name + " " + User.query.get(member.user_id).second_name,
                 "initials": "".join(word[0].upper() for word in User.query.get(member.user_id).first_name.split()),
                 "role": member.role.value,
                 "department": Department.query.get(member.department_id).name if member.department_id else None,
@@ -220,7 +220,8 @@ def view_task(task_id):
     for item in permission_on_db:
         perm_current = request.cookies.get(f'perm_{item.function}')
         permission.append({item.function: perm_current})
-    print(permission)
 
-    return render_template('tasks/task-details.html', permission=permission, task=response, user=user, now=datetime.now())  # Если нужен HTML шаблон
+    userList = User.query.all()
+
+    return render_template('tasks/task-details.html', permission=permission, partic=userList, task=response, user=user, now=datetime.now())  # Если нужен HTML шаблон
 

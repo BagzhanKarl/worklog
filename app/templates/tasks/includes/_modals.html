@@ -50,45 +50,40 @@
 
 {# Модальное окно добавления участника #}
 <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <form action="/api/task/{{ task.id }}/members/add" method="POST">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addMemberModalLabel">Добавление участника</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Выберите сотрудника</label>
-                        <select class="form-select" name="user_id" required>
-                            <option value="">Выберите сотрудника...</option>
-                            {% for department in departments %}
-                                <optgroup label="{{ department.name }}">
-                                    {% for user in department.users %}
-                                        <option value="{{ user.id }}">{{ user.full_name }}</option>
-                                    {% endfor %}
-                                </optgroup>
-                            {% endfor %}
-                        </select>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="/api/task/{{ task.id }}/members/add" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addMemberModalLabel">Добавление участника</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Выберите сотрудника</label>
+                            <select id="user_select" name="user_id" required>
+                                {% for user in partic %}
+                                    <option value="{{ user.id }}">{{ user.second_name + " " + user.first_name + " " + user.third_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Роль в задаче</label>
-                        <select class="form-select" name="role" required>
-                            <option value="responsible">Ответственный</option>
-                            <option value="executor">Исполнитель</option>
-                            <option value="observer">Наблюдатель</option>
-                        </select>
+                        <div class="mb-3">
+                            <label class="form-label">Роль в задаче</label>
+                            <select class="form-select" name="role" required>
+                                <option value="responsible">Ответственный</option>
+                                <option value="executor">Исполнитель</option>
+                                <option value="observer">Наблюдатель</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Добавить</button>
-                </div>
-            </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Добавить</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
 <div class="modal fade" id="addChecklistModal" tabindex="-1" aria-labelledby="addChecklistModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -284,3 +279,25 @@
     }
 }
 </style>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.2.2/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.2.2/js/tom-select.complete.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        new TomSelect('#user_select', {
+            create: false,
+            sortField: {
+                field: "text",
+                direction: "asc"
+            },
+            placeholder: 'Выберите сотрудника...',
+            plugins: ['dropdown_input'],
+            maxOptions: null,
+            render: {
+                no_results: function(data, escape) {
+                    return '<div class="no-results">Сотрудник не найден</div>';
+                },
+            }
+        });
+    });
+</script>
