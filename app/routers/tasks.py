@@ -2,7 +2,7 @@ from datetime import datetime
 
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for
 from app.db import db, Task, Department, Permission, TaskParticipant, TaskFile, TaskComment, DepartmentTaskAssignment, \
-    TaskChecklist, TaskPriority, User
+    TaskChecklist, TaskPriority, User, TaskStatus
 from app.routers import departments
 from app.utils import token_required, permission_check, generate_unique_id
 
@@ -27,6 +27,8 @@ def get_all_tasks():
                            )
 
 
+
+
 @tasks.route('/get/<int:department_id>', methods=['POST'])
 @token_required
 def get_task(department_id):
@@ -43,10 +45,12 @@ def get_task(department_id):
                 {
                     'id': taskItem.id,
                     'title': taskItem.title,
-                    'task_platform_id': taskItem.platform_id,
+                    'platform_id': taskItem.platform_id,
                     'members': TaskParticipant.query.filter_by(task_id=task.task_id).count(),
                     'files': TaskFile.query.filter_by(task_id=task.task_id).count(),
                     'comments': TaskComment.query.filter_by(task_id=task.task_id).count(),
+                    'priority': taskItem.priority,
+                    'status': taskItem.status,
                 }
             )
     else:
@@ -60,10 +64,12 @@ def get_task(department_id):
                 {
                     'id': taskItem.id,
                     'title': taskItem.title,
-                    'task_platform_id': taskItem.platform_id,
+                    'platform_id': taskItem.platform_id,
                     'members': TaskParticipant.query.filter_by(task_id=task.task_id).count(),
                     'files': TaskFile.query.filter_by(task_id=task.task_id).count(),
                     'comments': TaskComment.query.filter_by(task_id=task.task_id).count(),
+                    'priority': taskItem.priority,
+                    'status': taskItem.status,
                 }
             )
 
@@ -73,15 +79,17 @@ def get_task(department_id):
         perm_current = request.cookies.get(f'perm_{item.function}')
         permission.append({item.function: perm_current})
 
-    print(permission)
-
+    taskPrority = TaskPriority
+    taskStatus = TaskStatus
     return render_template('tasks/task-api-taker.html',
                            user=user,
                            permission=permission,
                            my=my,
                            my_department=my_department,
                            department_id=department_id,
-                           tasks=response
+                           tasks=response,
+                           taskPrority=taskPrority,
+                           TaskStatus=taskStatus
                            )
 
 
@@ -154,8 +162,8 @@ def view_task(task_id):
                 "department": Department.query.get(item.department_id).name if item.department_id else None,
 
                 "is_completed": item.is_completed,
-                "completed_by": User.query.get(item.completed_by).full_name if item.completed_by else None,
-                "completed_at": item.completed_at.isoformat() if item.completed_at else None,
+                "completed_by": User.query.get(item.completed_by).first_name + " " + User.query.get(item.completed_by).second_name if item.completed_by else None,
+                "completed_at": item.completed_at if item.completed_at else None,
                 "weight": item.weight
             } for item in checklist.items.all()]
         } for checklist in checklists],
@@ -172,10 +180,10 @@ def view_task(task_id):
                 "file_path": file.file_path,
                 "uploader": {
                     "id": file.uploader_id,
-                    "full_name": User.query.get(file.uploader_id).full_name
+                    "full_name": User.query.get(file.uploader_id).first_name + " " + User.query.get(file.uploader_id).second_name,
                 },
                 "department_id": file.department_id,
-                "uploaded_at": file.uploaded_at.isoformat(),
+                "uploaded_at": file.uploaded_at,
                 "is_deleted": file.is_deleted
             } for file in task.files.filter_by(is_deleted=False)]
         },
@@ -207,8 +215,12 @@ def view_task(task_id):
         }
     }
 
-    #return jsonify(response)
-    print(response)
-    # или
-    return render_template('tasks/task-details.html', task=response, user=user, now=datetime.now())  # Если нужен HTML шаблон
+    permission_on_db = Permission.query.filter_by(page='task').all()
+    permission = []
+    for item in permission_on_db:
+        perm_current = request.cookies.get(f'perm_{item.function}')
+        permission.append({item.function: perm_current})
+    print(permission)
+
+    return render_template('tasks/task-details.html', permission=permission, task=response, user=user, now=datetime.now())  # Если нужен HTML шаблон
 

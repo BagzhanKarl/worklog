@@ -1,6 +1,7 @@
 {# _task_files.html #}
 <div class="files-section">
     {# Секция загрузки файлов #}
+    {% if permission[11].upload_files == 'true' %}
     <div class="file-upload-section mb-4">
         <form action="/api/task/{{ task.id }}/upload" id="saveFileOnDb" method="POST" enctype="multipart/form-data" class="file-upload-form">
             <div class="upload-zone">
@@ -10,9 +11,15 @@
                     <h6 class="mt-2 mb-1">Перетащите файлы сюда или нажмите для выбора</h6>
                     <p class="text-secondary small mb-0">Максимальный размер файла: 50 MB</p>
                 </div>
+                <div class="progress-wrapper" style="display: none;">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
+    {% endif %}
 
     {# Статистика файлов #}
     {% if task.files.files|length > 0 %}
@@ -114,14 +121,14 @@
                                     </div>
                                     <div class="file-actions">
                                         <a href="{{ file.file_path }}"
-                                           class="btn btn-light btn-sm"
+                                           class="add-btn"
                                            download="{{ file.original_filename }}"
                                            data-bs-toggle="tooltip"
                                            title="Скачать файл">
                                             <ion-icon name="download-outline"></ion-icon>
                                         </a>
-                                        {% if user.role_id in [1, 2] or user.id == file.uploader.id %}
-                                            <button class="btn btn-light btn-sm text-danger"
+                                        {% if permission[11].delete_files == 'true' %}
+                                            <button class="add-btn text-danger"
                                                     data-bs-toggle="tooltip"
                                                     title="Удалить файл"
                                                     onclick="deleteFile({{ file.id }})">
@@ -146,6 +153,14 @@
 
 <style>
 .files-section {
+    --primary-color: #0d6efd;
+    --primary-light: #e6f0ff;
+    --text-primary: #2c3e50;
+    --text-secondary: #6c757d;
+    --bg-secondary: #f8f9fa;
+    --bg-light: #e9ecef;
+    --border-color: #dee2e6;
+    --shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075);
     min-height: 400px;
 }
 
@@ -155,7 +170,8 @@
     transition: all 0.3s ease;
 }
 
-.file-upload-section:hover {
+.file-upload-section:hover,
+.file-upload-section.dragover {
     border-color: var(--primary-color);
 }
 
@@ -174,11 +190,27 @@
     height: 100%;
     opacity: 0;
     cursor: pointer;
+    z-index: 2;
+}
+
+.upload-content {
+    position: relative;
+    z-index: 1;
 }
 
 .upload-icon {
     font-size: 2.5rem;
     color: var(--primary-color);
+}
+
+.progress-wrapper {
+    margin-top: 1rem;
+}
+
+.progress {
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
 }
 
 .stats-card {
@@ -188,6 +220,11 @@
     padding: 1rem;
     background: var(--bg-secondary);
     border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.stats-card:hover {
+    background: var(--bg-light);
 }
 
 .stats-icon {
@@ -222,11 +259,12 @@
     gap: 0.5rem;
     margin: 0;
     font-size: 1rem;
+    color: var(--text-primary);
 }
 
 .file-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill);
     gap: 1rem;
 }
 
@@ -268,6 +306,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--text-primary);
 }
 
 .file-meta {
@@ -282,7 +321,6 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-top: 0.5rem;
 }
 
 .uploader-avatar {
@@ -327,3 +365,166 @@
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('saveFileOnDb');
+    const uploadZone = document.querySelector('.upload-zone');
+    const fileInput = document.getElementById('taskFiles');
+    const progressWrapper = document.querySelector('.progress-wrapper');
+    const progressBar = progressWrapper.querySelector('.progress-bar');
+
+    // Обработка перетаскивания
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight() {
+        uploadZone.classList.add('dragover');
+    }
+
+    function unhighlight() {
+        uploadZone.classList.remove('dragover');
+    }
+
+    // Обработка выбора файлов
+    fileInput.addEventListener('change', handleFiles);
+    uploadZone.addEventListener('drop', handleDrop);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles({ target: { files: files } });
+    }
+
+    function handleFiles(e) {
+        const files = e.target.files;
+        if (files.length > 0) {
+            uploadFiles(files);
+        }
+    }
+
+    function uploadFiles(files) {
+        const formData = new FormData();
+        let validFiles = true;
+
+        Array.from(files).forEach(file => {
+            if (file.size <= 52428800) {
+                formData.append('files[]', file);
+            } else {
+                validFiles = false;
+                showError(`Файл ${file.name} слишком большой. Максимальный размер 50MB`);
+            }
+        });
+
+        if (!validFiles) return;
+
+        progressWrapper.style.display = 'block';
+
+        // Отправляем файлы на сервер
+        fetch(form.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+
+                window.location.reload();
+            } else {
+                showError(data.message || 'Ошибка при загрузке файлов');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Произошла ошибка при загрузке файлов');
+        })
+        .finally(() => {
+            progressWrapper.style.display = 'none';
+            progressBar.style.width = '0%';
+            fileInput.value = '';
+            uploadZone.classList.remove('dragover');
+        });
+    }
+
+    // Функция для удаления файла
+    window.deleteFile = function(fileId) {
+        if (!confirm('Вы уверены, что хотите удалить этот файл?')) {
+            return;
+        }
+
+        fetch(`/api/files/${fileId}/delete`, {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Удаляем карточку файла из DOM
+                const fileCard = document.getElementById(`file-${fileId}`);
+                if (fileCard) {
+                    fileCard.remove();
+                }
+                showSuccess('Файл успешно удален');
+
+                // Обновляем статистику
+                updateFileStats();
+            } else {
+                showError(data.message || 'Ошибка при удалении файла');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Произошла ошибка при удалении файла');
+        });
+    };
+
+    function updateFileStats() {
+        // Обновляем общее количество файлов
+        const fileCount = document.querySelectorAll('.file-card').length;
+        const statsValue = document.querySelector('.stats-value');
+        if (statsValue) {
+            statsValue.textContent = fileCount;
+        }
+
+        // Если нет файлов, показываем сообщение
+        const filesContainer = document.querySelector('.files-container');
+        const noFiles = document.querySelector('.no-files');
+        if (fileCount === 0) {
+            if (filesContainer) filesContainer.style.display = 'none';
+            if (noFiles) noFiles.style.display = 'block';
+        }
+    }
+
+    // Функции для отображения уведомлений
+    function showSuccess(message) {
+        // Здесь можно использовать любую библиотеку уведомлений
+        // Например, Toastr или встроенные уведомления Bootstrap
+        window.location.reload();
+    }
+
+    function showError(message) {
+        // Здесь можно использовать любую библиотеку уведомлений
+        alert(message); // Временное решение
+    }
+
+    // Инициализация тултипов Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>

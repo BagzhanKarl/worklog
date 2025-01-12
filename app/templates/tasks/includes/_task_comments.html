@@ -8,30 +8,7 @@
             {% for comment in task.comments.comments|sort(attribute='created_at', reverse=true) %}
                 {% set comment_date = comment.created_at.strftime('%Y-%m-%d') %}
 
-                {% if comment_date != current_date %}
-                    {% if not loop.first %}
-                        </div> {# Закрываем предыдущую группу #}
-                    {% endif %}
-
-                    <div class="timeline-divider">
-                        <div class="timeline-line"></div>
-                        <div class="timeline-date">
-                            {% if comment.created_at.strftime('%Y-%m-%d') == now.strftime('%Y-%m-%d') %}
-                                Сегодня
-                            {% elif comment.created_at.strftime('%Y-%m-%d') == (now - timedelta(days=1)).strftime('%Y-%m-%d') %}
-                                Вчера
-                            {% else %}
-                                {{ comment.created_at.strftime('%d.%m.%Y') }}
-                            {% endif %}
-                        </div>
-                        <div class="timeline-line"></div>
-                    </div>
-
-                    <div class="comments-group">
-                    {% set current_date = comment_date %}
-                {% endif %}
-
-                <div class="comment-card" id="comment-{{ comment.id }}">
+                <div class="comment-card mt-3" id="comment-{{ comment.id }}">
                     <div class="comment-header">
                         <div class="user-info">
                             <div class="user-avatar" title="{{ comment.user.full_name }}">
@@ -51,23 +28,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="comment-actions">
-                            <button class="action-btn" data-bs-toggle="dropdown">
-                                <ion-icon name="ellipsis-horizontal"></ion-icon>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end action-menu">
-                                {% if user.id == comment.user.id or user.role_id in [1, 2] %}
-                                    <button class="menu-item danger" onclick="deleteComment({{ comment.id }})">
-                                        <ion-icon name="trash-outline"></ion-icon>
-                                        <span>Удалить</span>
-                                    </button>
-                                {% endif %}
-                                <button class="menu-item" onclick="copyCommentLink({{ comment.id }})">
-                                    <ion-icon name="link-outline"></ion-icon>
-                                    <span>Копировать ссылку</span>
-                                </button>
-                            </div>
-                        </div>
+
                     </div>
 
                     <div class="comment-content" style="white-space: none !important;">
@@ -114,9 +75,6 @@
                     {% endif %}
                 </div>
 
-                {% if loop.last %}
-                    </div> {# Закрываем последнюю группу #}
-                {% endif %}
             {% endfor %}
         {% else %}
             <div class="empty-state">
@@ -130,6 +88,7 @@
     </div>
 
     {# Форма добавления комментария #}
+    {% if permission[9].create_comment == 'true' %}
     <div class="comment-composer">
         <form id="commentForm" method="post" action="/api/task/{{ task.id }}/comment/add" class="composer-form" enctype="multipart/form-data">
             <div class="composer-wrapper">
@@ -173,6 +132,7 @@
             </div>
         </form>
     </div>
+    {% endif %}
 </div>
 
 <style>

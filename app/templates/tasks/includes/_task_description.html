@@ -38,7 +38,7 @@
                 <h5>Чек-лист</h5>
                 <span class="counter">{{ task.checklists|length }}</span>
             </div>
-            {% if user.role_id in [1, 2] or user.id == task.creator.id %}
+            {% if permission[6].create_checklist == 'true' %}
                 <button class="add-btn" data-bs-toggle="modal" data-bs-target="#addChecklistModal">
                     <ion-icon name="add-outline"></ion-icon>
                     <span>Добавить</span>
@@ -61,6 +61,7 @@
                                     {{ checklist.department_name }}
                                 </span>
                             {% endif %}
+                            {% if permission[7].create_checklist_items == 'true' %}
                             <button type="button"
                                     class="add-btn"
                                     data-bs-toggle="modal"
@@ -69,14 +70,15 @@
                                 <ion-icon name="add-outline"></ion-icon>
                                 Добавить подзадачу
                             </button>
+                            {% endif %}
                         </div>
                         <div class="checklist-items">
                             {% for item in checklist['items'] %}
                                 <div class="checklist-item" data-item-id="{{ item.id }}">
                                     <div class="item-main">
-                                        <label class="custom-checkbox">
-                                            <input type="checkbox"
-                                                   {% if item.is_completed %}checked{% endif %}
+                                        <label class="custom-checkbox" >
+                                            <input type="checkbox" id="checkbox{{ item.id }}"
+                                                   {% if item.is_completed %}checked {% if permission[8].uncheck_checklist_items != 'true' %}disabled{% endif %}{% endif %}
                                                    {% if not user.role_id in [1, 2] and user.id != task.creator.id %}disabled{% endif %}
                                                    data-item-id="{{ item.id }}">
                                             <span class="checkbox-mark"></span>
@@ -442,7 +444,7 @@
     animation: fadeIn 0.3s ease-out;
 }
 </style>
-
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Обработчик открытия модального окна
@@ -459,5 +461,68 @@ document.addEventListener('DOMContentLoaded', function() {
     // Обработчик отправки формы
     const addItemForm = document.getElementById('addItemForm');
 
+});
+
+$(document).ready(function() {
+    // Cache the checklist container
+    const $checklistContainer = $('.checklist-container');
+
+    // Handle checkbox changes
+    $checklistContainer.on('change', 'input[type="checkbox"]', function(e) {
+        const $checkbox = $(this);
+        const itemId = $checkbox.data('item-id');
+        const isChecked = $checkbox.prop('checked');
+
+        // Disable checkbox during the request to prevent double-clicks
+        $checkbox.prop('disabled', true);
+
+        // Add loading state to the checklist item
+        const $checklistItem = $checkbox.closest('.checklist-item');
+        $checklistItem.addClass('loading');
+
+        // Make the AJAX request
+        $.ajax({
+            url: `/api/tasks/checkitem/completed/${itemId}`,
+            method: 'POST',
+            data: {
+                completed: isChecked
+            },
+            success: function(response) {
+                // Update the UI with completion information if provided in response
+                if (response.completed_by && response.completed_at) {
+                    let $metaDiv = $checklistItem.find('.item-meta');
+
+                    // Create or update completion info
+                    let $completionInfo = $metaDiv.find('.completion-info');
+                    if ($completionInfo.length === 0) {
+                        $completionInfo = $('<div class="completion-info"></div>');
+                        $metaDiv.append($completionInfo);
+                    }
+
+                    $completionInfo.html(`
+                        <span class="completed-by">${response.completed_by}</span>
+                        <span class="completed-at">${response.completed_at}</span>
+                    `);
+                } else if (!isChecked) {
+                    // Remove completion info if unchecked
+                    $checklistItem.find('.completion-info').remove();
+                }
+            },
+            error: function(xhr, status, error) {
+                // Revert checkbox state on error
+                $checkbox.prop('checked', !isChecked);
+
+                // Show error message
+                alert('Произошла ошибка при сохранении статуса задачи. Пожалуйста, попробуйте еще раз.');
+
+                console.error('Error updating checklist item:', error);
+            },
+            complete: function() {
+                // Remove loading state and re-enable checkbox
+                $checklistItem.removeClass('loading');
+                $checkbox.prop('disabled', false);
+            }
+        });
+    });
 });
 </script>

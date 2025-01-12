@@ -170,6 +170,102 @@ def create_permission():
 
     return jsonify({'message': 'Permission created successfully'}), 201
 
+# Создать разрешение по массиву
+@admin.route('/permissions/list/create', methods=['GET'])
+def create_permission_array():
+    data = [
+        {
+            "name": "Изменение статуса задачи",
+            "function": "update_task_status",
+            "description": "Позволяет изменять текущий статус задачи на другой доступный статус",
+            "page": "task",
+            "method": 3
+        },
+        {
+            "name": "Изменение приоритета задачи",
+            "function": "update_task_priority",
+            "description": "Позволяет изменять уровень приоритета выполнения задачи",
+            "page": "task",
+            "method": 3
+        },
+        {
+            "name": "Добавление участника задачи",
+            "function": "add_task_participant",
+            "description": "Позволяет добавлять новых участников к существующей задаче",
+            "page": "task",
+            "method": 1
+        },
+        {
+            "name": "Удаление участника задачи",
+            "function": "remove_task_participant",
+            "description": "Позволяет удалять существующих участников из задачи",
+            "page": "task",
+            "method": 4
+        },
+        {
+            "name": "Редактирование задачи",
+            "function": "update_task",
+            "description": "Позволяет изменять основную информацию задачи (название, описание, сроки и др.)",
+            "page": "task",
+            "method": 3
+        },
+        {
+            "name": "Архивация задачи",
+            "function": "archive_task",
+            "description": "Позволяет перемещать задачу в архив",
+            "page": "task",
+            "method": 3
+        },
+        {
+            "name": "Создание чеклиста",
+            "function": "create_checklist",
+            "description": "Позволяет создавать новый чеклист в задаче",
+            "page": "task",
+            "method": 1
+        },
+        {
+            "name": "Создание элементов чеклиста",
+            "function": "create_checklist_items",
+            "description": "Позволяет добавлять новые элементы в существующий чеклист",
+            "page": "task",
+            "method": 1
+        },
+        {
+            "name": "Отмена выполнения элементов чеклиста",
+            "function": "uncheck_checklist_items",
+            "description": "Позволяет отменять отметку о выполнении элементов чеклиста",
+            "page": "task",
+            "method": 3
+        },
+        {
+            "name": "Добавление комментария",
+            "function": "create_comment",
+            "description": "Позволяет создавать новые комментарии к задаче",
+            "page": "task",
+            "method": 1
+        },
+        {
+            "name": "Добавление файлов",
+            "function": "upload_files",
+            "description": "Позволяет загружать файлы к задаче",
+            "page": "task",
+            "method": 1
+        },
+        {
+            "name": "Удаление файлов",
+            "function": "delete_files",
+            "description": "Позволяет удалять прикрепленные к задаче файлы",
+            "page": "task",
+            "method": 4
+        }
+    ]
+
+    for item in data:
+        permission = Permission(name=item['name'], function=item['function'], description=['description'], page=item['page'], method=item['method'])
+        permission.save_to_db()
+
+    return jsonify({'message': 'Permission created successfully'}), 201
+
 
 ########## ROLES ##########
 # Получить все роли

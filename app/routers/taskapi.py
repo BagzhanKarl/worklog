@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, redirect, url_for
-from app.db import db, Department, TaskPriority, TaskStatus
+from app.db import db, Department, TaskPriority, TaskStatus, User, FileType
 from datetime import datetime
 from app.db import (
     Task, TaskParticipant, TaskChecklist, ChecklistItem,
@@ -439,3 +439,269 @@ def add_comment(task_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
+
+
+@api.route('/tasks/checkitem/completed/<int:item_id>', methods=['POST'])
+@token_required
+def toggle_checklist_item(item_id):
+    item = ChecklistItem.query.get_or_404(item_id)
+
+    try:
+        # Получаем новый статус из запроса
+        is_completed = request.form.get('completed', '').lower() == 'true'
+
+        # Обновляем статус элемента
+        item.is_completed = is_completed
+
+        # Если задача отмечена как выполненная
+        if is_completed:
+            item.completed_by = request.user['id']
+            item.completed_at = datetime.now()
+
+            # Получаем информацию о пользователе для ответа
+            user = User.query.get(request.user['id'])
+            completed_by = user.first_name + " " + user.second_name if user else ''
+
+            response_data = {
+                'completed_by': completed_by,
+                'completed_at': item.completed_at.strftime('%d.%m.%Y %H:%M')
+            }
+        else:
+            # Если задача снята с выполнения, очищаем информацию
+            item.completed_by = None
+            item.completed_at = None
+            response_data = {
+                'completed_by': None,
+                'completed_at': None
+            }
+
+        db.session.commit()
+        return jsonify(response_data)
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+
+@api.route('/tasks/<int:task_id>/changestatus', methods=['POST'])
+@token_required
+def change_task_status(task_id):
+    task = Task.query.get_or_404(task_id)
+
+    try:
+        # Получаем новый статус из запроса
+        new_status = request.form.get('status')
+
+        if not new_status:
+            return jsonify({
+                'message': 'Статус не указан'
+            }), 400
+
+        if new_status not in [status.value for status in TaskStatus]:
+            return jsonify({
+                'message': 'Некорректный статус'
+            }), 400
+
+        # Обновляем статус задачи
+        task.status = TaskStatus(new_status)
+
+        # Если статус изменен на "completed", устанавливаем время завершения
+        if new_status == TaskStatus.COMPLETED.value:
+            task.completed_at = datetime.now()
+
+        # Обновляем время изменения
+        task.updated_at = datetime.now()
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Статус успешно обновлен',
+            'status': new_status,
+            'status_updated_at': task.updated_at.isoformat()
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'message': 'Произошла ошибка при обновлении статуса',
+            'error': str(e)
+        }), 400
+
+
+@api.route('/tasks/<int:task_id>/change/priority', methods=['POST'])
+@token_required
+def change_task_priority(task_id):
+    task = Task.query.get_or_404(task_id)
+
+    try:
+        # Получаем новый приоритет из запроса
+        new_priority = request.form.get('priority')
+
+        if not new_priority:
+            return jsonify({
+                'message': 'Приоритет не указан'
+            }), 400
+
+        # Проверяем, что приоритет имеет допустимое значение
+        if new_priority not in [priority.value for priority in TaskPriority]:
+            return jsonify({
+                'message': 'Некорректный приоритет'
+            }), 400
+
+        # Обновляем приоритет задачи
+        task.priority = TaskPriority(new_priority)
+        task.updated_at = datetime.now()
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Приоритет успешно обновлен',
+            'priority': new_priority,
+            'updated_at': task.updated_at.isoformat()
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'message': 'Произошла ошибка при обновлении приоритета',
+            'error': str(e)
+        }), 400
+
+
+@api.route('/task/<int:task_id>/upload', methods=['POST'])
+@token_required
+def upload_task_files(task_id):
+    task = Task.query.get_or_404(task_id)
+
+    try:
+        if 'files[]' not in request.files:
+            return jsonify({
+                'message': 'Файлы не были загружены'
+            }), 400
+
+        files = request.files.getlist('files[]')
+
+        # Проверяем, что есть хотя бы один файл
+        if not files or all(not file.filename for file in files):
+            return jsonify({
+                'message': 'Не выбрано ни одного файла'
+            }), 400
+
+        uploaded_files = []
+        errors = []
+
+        for file in files:
+            if file and file.filename:
+                try:
+                    # Проверяем размер файла (50 MB = 52428800 bytes)
+                    if len(file.read()) > 52428800:
+                        errors.append(f'Файл {file.filename} превышает максимальный размер в 50 MB')
+                        file.seek(0)
+                        continue
+
+                    file.seek(0)
+                    file_info = file_handler.save_file(file, subdir='tasks')
+
+                    # Определяем тип файла на основе расширения
+                    ext = os.path.splitext(file.filename.lower())[1]
+                    if ext in ['.jpg', '.jpeg', '.png', '.gif']:
+                        file_type = FileType.IMAGE
+                    elif ext in ['.pdf', '.doc', '.docx']:
+                        file_type = FileType.DOCUMENT
+                    elif ext in ['.zip', '.rar', '.7z']:
+                        file_type = FileType.ARCHIVE
+                    else:
+                        file_type = FileType.OTHER
+
+                    task_file = TaskFile(
+                        task_id=task_id,
+                        uploader_id=request.user['id'],
+                        filename=file_info['filename'],
+                        original_filename=file_info['original_filename'],
+                        file_type=file_type,
+                        mime_type=file.content_type,
+                        file_size=file_info['file_size'],
+                        file_path=file_info['relative_path']
+                    )
+
+                    db.session.add(task_file)
+                    uploaded_files.append({
+                        'original_name': file.filename,
+                        'size': file_info['file_size']
+                    })
+
+                except Exception as e:
+                    errors.append(f'Ошибка при загрузке файла {file.filename}: {str(e)}')
+                    continue
+
+        if uploaded_files:
+            db.session.commit()
+
+        response = {
+            'message': f'Успешно загружено файлов: {len(uploaded_files)}',
+            'uploaded_files': uploaded_files
+        }
+
+        if errors:
+            response['errors'] = errors
+
+        # Возвращаем 207 Multi-Status если есть и успешные загрузки, и ошибки
+        status_code = 207 if errors and uploaded_files else 200 if uploaded_files else 400
+
+        return jsonify(response), status_code
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'message': 'Произошла ошибка при загрузке файлов',
+            'error': str(e)
+        }), 400
+
+
+@api.route('/files/<int:file_id>/delete', methods=['POST'])
+@token_required
+def delete_file(file_id):
+    try:
+        # Пробуем найти файл сначала в TaskFile
+        file = TaskFile.query.get(file_id)
+        if file is None:
+            # Если не нашли в TaskFile, ищем в CommentFile
+            file = CommentFile.query.get(file_id)
+
+        if file is None:
+            return jsonify({
+                'success': False,
+                'message': 'Файл не найден'
+            }), 404
+
+        # Проверяем права на удаление
+        if file.uploader_id != request.user['id']:
+            return jsonify({
+                'success': False,
+                'message': 'Недостаточно прав для удаления файла'
+            }), 403
+
+        # Удаляем физический файл
+        try:
+            file_handler.delete_file(file.file_path)
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'message': f'Ошибка при удалении файла из файловой системы: {str(e)}'
+            }), 500
+
+        # Удаляем запись из базы данных
+        db.session.delete(file)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Файл успешно удален'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Произошла ошибка при удалении файла: {str(e)}'
+        }), 400

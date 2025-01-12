@@ -35,7 +35,7 @@
                 {# Статусы и действия #}
                 <div class="task-header-actions">
 
-                    {% if user.role_id in [1, 2] or user.id == task.creator.id %}
+                    {% if permission[4].update_task == 'true' %}
                     <div class="action-buttons">
                         <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#editTaskModal">
                             <ion-icon name="create-outline"></ion-icon>

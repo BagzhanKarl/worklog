@@ -50,7 +50,7 @@
                     Статус
                 </label>
                 <div class="custom-select-wrapper">
-                    <select class="custom-select status-select"
+                    <select class="custom-select status-select disabled" {% if permission[0].update_task_status != 'true' %} disabled {% endif %}
                             {% if user.role_id not in [1, 2] and user.id != task.creator.id %}disabled{% endif %}
                             data-task-id="{{ task.id }}">
                         {% set status_options = {
@@ -76,7 +76,7 @@
                     Приоритет
                 </label>
                 <div class="custom-select-wrapper">
-                    <select class="custom-select priority-select"
+                    <select class="custom-select priority-select" {% if permission[1].update_task_priority != 'true' %} disabled {% endif %}
                             {% if user.role_id not in [1, 2] and user.id != task.creator.id %}disabled{% endif %}
                             data-task-id="{{ task.id }}">
                         {% set priority_options = {
@@ -140,7 +140,7 @@
                 <ion-icon name="people-outline"></ion-icon>
                 <h5>Участники</h5>
                 <span class="counter">{{ task.members.count }}</span>
-                {% if user.role_id in [1, 2] or user.id == task.creator.id %}
+                {% if permission[2].add_task_participant == 'true' %}
                     <button class="add-member-btn" data-bs-toggle="modal" data-bs-target="#addMemberModal">
                         <ion-icon name="person-add-outline"></ion-icon>
                     </button>
@@ -149,7 +149,7 @@
             <div class="members-list">
                 {% for member in task.members.members %}
                     <div class="member-card">
-                        <div class="member-info">
+                        <div class="member-info w-100">
                             <div class="member-avatar" title="{{ member.full_name }}">
                                 {{ member.initials }}
                             </div>
@@ -162,10 +162,12 @@
                                     <span class="meta-tag role">{{ member.role|title }}</span>
                                 </div>
                             </div>
-                        </div>
-                        <div class="member-stats">
-                            <ion-icon name="time-outline"></ion-icon>
-                            <span>{{ member.time_spent }} мин</span>
+                            {% if permission[3].remove_task_participant == 'true' %}
+                                <div class="member-remove text-end" style="margin-left: auto">
+                                    <a  class="add btn text-danger"><ion-icon style="font-size: 24px" name="close-circle-outline"></ion-icon></a>
+
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}
@@ -372,7 +374,6 @@
 }
 
 .department-item:hover {
-    transform: translateX(4px);
     background: var(--primary-light);
 }
 
@@ -703,3 +704,171 @@
     transform: translateX(100%);
 }
 </style>
+
+
+<script>
+    $(document).ready(function() {
+        // Cache the status select element
+        const $statusSelect = $('.status-select');
+
+        // Store initial status value
+        let previousStatus = $statusSelect.val();
+
+        $statusSelect.on('change', function(e) {
+            const $select = $(this);
+            const taskId = $select.data('task-id');
+            const newStatus = $select.val();
+
+            // Disable select during the request
+            $select.prop('disabled', true);
+
+            // Add loading state to the wrapper
+            const $wrapper = $select.closest('.custom-select-wrapper');
+            $wrapper.addClass('loading');
+
+            $.ajax({
+                url: `/api/tasks/${taskId}/changestatus`,
+                method: 'POST',
+                data: {
+                    status: newStatus
+                },
+                success: function(response) {
+                    // Update previous status on success
+                    previousStatus = newStatus;
+
+                    // Optional: Update any UI elements that depend on status
+                    if (response.status_updated_at) {
+                        // You can add additional UI updates here if needed
+                    }
+
+                    // Optional: Show success message
+                    const statusLabel = $select.find('option:selected').text();
+                    const message = `Статус успешно изменен на "${statusLabel}"`;
+                    if (window.showNotification) {
+                        window.showNotification('success', message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Revert to previous status
+                    $select.val(previousStatus);
+
+                    // Show error message
+                    let errorMessage = 'Произошла ошибка при изменении статуса.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    if (window.showNotification) {
+                        window.showNotification('error', errorMessage);
+                    } else {
+                        alert(errorMessage);
+                    }
+
+                    console.error('Error updating task status:', error);
+                },
+                complete: function() {
+                    // Remove loading state and re-enable select
+                    $wrapper.removeClass('loading');
+                    $select.prop('disabled', false);
+                }
+            });
+        });
+
+        // Optional: Add custom styling for disabled state
+        if ($statusSelect.prop('disabled')) {
+            $statusSelect.closest('.custom-select-wrapper').addClass('disabled');
+        }
+
+        // Cache the priority select element
+        const $prioritySelect = $('.priority-select');
+
+        // Store initial priority value
+        let previousPriority = $prioritySelect.val();
+
+        $prioritySelect.on('change', function(e) {
+            const $select = $(this);
+            const taskId = $select.data('task-id');
+            const newPriority = $select.val();
+
+            // Disable select during the request
+            $select.prop('disabled', true);
+
+            // Add loading state to the wrapper
+            const $wrapper = $select.closest('.custom-select-wrapper');
+            $wrapper.addClass('loading');
+
+            $.ajax({
+                url: `/api/tasks/${taskId}/change/priority`,
+                method: 'POST',
+                data: {
+                    priority: newPriority
+                },
+                success: function(response) {
+                    // Update previous priority on success
+                    previousPriority = newPriority;
+
+                    // Add appropriate priority class to task container if needed
+                    const $taskContainer = $select.closest('.task-container');
+                    if ($taskContainer.length) {
+                        // Remove old priority classes
+                        $taskContainer.removeClass('priority-low priority-medium priority-high priority-urgent');
+                        // Add new priority class
+                        $taskContainer.addClass(`priority-${newPriority}`);
+                    }
+
+                    // Optional: Show success message
+                    const priorityLabel = $select.find('option:selected').text();
+                    const message = `Приоритет успешно изменен на "${priorityLabel}"`;
+                    if (window.showNotification) {
+                        window.showNotification('success', message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Revert to previous priority
+                    $select.val(previousPriority);
+
+                    // Show error message
+                    let errorMessage = 'Произошла ошибка при изменении приоритета задачи.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    if (window.showNotification) {
+                        window.showNotification('error', errorMessage);
+                    } else {
+                        alert(errorMessage);
+                    }
+
+                    console.error('Error updating task priority:', error);
+                },
+                complete: function() {
+                    // Remove loading state and re-enable select
+                    $wrapper.removeClass('loading');
+                    $select.prop('disabled', false);
+                }
+            });
+        });
+
+        // Optional: Add custom styling for disabled state
+        if ($prioritySelect.prop('disabled')) {
+            $prioritySelect.closest('.custom-select-wrapper').addClass('disabled');
+        }
+
+        // Optional: Add visual indicators for priority levels
+        function updatePriorityVisuals() {
+            const priority = $prioritySelect.val();
+            const $wrapper = $prioritySelect.closest('.custom-select-wrapper');
+
+            // Remove all priority classes
+            $wrapper.removeClass('priority-low priority-medium priority-high priority-urgent');
+            // Add current priority class
+            $wrapper.addClass(`priority-${priority}`);
+        }
+
+        // Initialize priority visuals
+        updatePriorityVisuals();
+
+        // Update visuals on change
+        $prioritySelect.on('change', updatePriorityVisuals);
+    });
+</script>
