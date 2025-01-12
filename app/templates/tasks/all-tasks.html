@@ -48,7 +48,7 @@ $(document).ready(function() {
     // Функция для загрузки задач
     function fetchTasks(departmentId) {
         $.ajax({
-            url: `http://127.0.0.1:8000/tasks/get/${departmentId}`,
+            url: `/tasks/get/${departmentId}`,
             method: 'POST',
             success: function(response) {
                 // Вставляем полученный HTML в контейнер
