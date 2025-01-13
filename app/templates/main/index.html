@@ -38,6 +38,9 @@
                     <!-- События будут добавлены через JavaScript -->
                 </div>
             </div>
+            <div class="mt-3">
+                <a href="/shifts/report" class="btn btn btn-primary w-100">Перевохтовка</a>
+            </div>
         </div>
     </div>
 </div>
@@ -166,17 +169,7 @@
     color: #2D3748;
 }
 
-.btn-primary {
-    background: #4299E1;
-    border: none;
-    box-shadow: 0 2px 4px rgba(66, 153, 225, 0.2);
-}
 
-.btn-primary:hover {
-    background: #3182CE;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(66, 153, 225, 0.3);
-}
 
 /* Стили календаря */
 .fc {
@@ -342,6 +335,9 @@ document.addEventListener('DOMContentLoaded', function() {
         locale: 'ru',
         selectable: true,
         editable: true,
+        header: {
+            start: 'title'
+        },
         events: [
             {
                 title: 'Встреча команды',
@@ -372,7 +368,11 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Событие: ' + info.event.title);
         },
 
-        headerToolbar: false // Убирает кнопки из календаря
+        headerToolbar: {
+            start: false,
+            center: "title",
+            end: false,
+        }
     });
 
     calendar.render();

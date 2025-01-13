@@ -67,3 +67,9 @@ def update_shift():
         # Сохраняем все изменения
     db.session.commit()
     return redirect(url_for('shifts.get_all_shifts'))
+
+@shifts.route('/report', methods=['GET'])
+@token_required
+def report_shift():
+    user = request.user
+    return render_template('shifts/shift-change.html', user=user)

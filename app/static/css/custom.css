@@ -232,13 +232,14 @@ body {
 }
 
 .btn-light{
-    background: linear-gradient(to left, #c9d6ff, #e2e2e2);
+    background: linear-gradient(to left, #e0e8ff, #efeeee);
     border: none;
     padding: 0.625rem 1.25rem;
     border-radius: 0.5rem;
     font-weight: 600;
     transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    color: var(--text-primary);
 }
 .btn-light:hover{
     transform: translateY(-2px);
@@ -299,8 +300,8 @@ body {
 
 /* Кастомный скроллбар */
 ::-webkit-scrollbar {
-    width: 3px;
-    height: 3px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
