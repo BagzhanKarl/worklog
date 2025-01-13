@@ -43,8 +43,9 @@ def get_all_departments():
 @departments.route('/<int:department_id>', methods=['GET'])
 @token_required
 def get_department_details(department_id):
+    user = request.user
     department = Department.get_by_id(department_id)  # Получаем департамент по ID
-    return render_template('departments/department_details.html', department=department)
+    return render_template('departments/department-details.html', user=user, department=department)
 
 
 # Создание департамента

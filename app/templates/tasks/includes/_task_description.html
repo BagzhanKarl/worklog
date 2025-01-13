@@ -78,7 +78,7 @@
                                     <div class="item-main">
                                         <label class="custom-checkbox" >
                                             <input type="checkbox" id="checkbox{{ item.id }}"
-                                                   {% if item.is_completed %}checked {% if permission[8].uncheck_checklist_items != 'true' %}disabled{% endif %}{% endif %}
+                                                   {% if item.is_completed %}checked {% endif %}
                                                    {% if not user.role_id in [1, 2] and user.id != task.creator.id %}disabled{% endif %}
                                                    data-item-id="{{ item.id }}">
                                             <span class="checkbox-mark"></span>
