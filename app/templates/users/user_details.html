@@ -128,7 +128,9 @@
                                 <label class="form-label">Выберите сотрудника на следущем вахте</label>
                                 <select id="user_select" name="shift_user_id" required>
                                     {% for user in partic %}
+                                        {% if user.id != 1 %}
                                         <option value="{{ user.id }}">{{ user.second_name + " " + user.first_name + " " + user.third_name }}</option>
+                                        {% endif %}
                                     {% endfor %}
                                 </select>
                             </div>
