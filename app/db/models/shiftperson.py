@@ -20,3 +20,18 @@ class ShiftPerson(db.Model):
     def save_to_db(self):
         db.session.add(self)
         db.session.commit()
+
+
+class ReportShift(db.Model):
+    __tablename__ = 'report_shift'
+
+    id = db.Column(db.Integer, primary_key=True)
+    from_on = db.Column(db.DateTime, nullable=False)
+    to = db.Column(db.DateTime, nullable=False)
+
+    completed = db.Column(db.Text)
+    needed = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    can_see = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)

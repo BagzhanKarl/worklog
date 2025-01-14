@@ -1,5 +1,5 @@
 from flask import Blueprint, request, render_template, redirect, url_for
-from app.db import db, User, Department, Shift, Role, Permission
+from app.db import db, User, Department, Shift, Role, Permission, ShiftPerson
 from app.utils import token_required
 
 users = Blueprint('users', __name__, url_prefix='/users')
@@ -47,8 +47,41 @@ def get_all_users():
 @users.route('/<int:user_id>', methods=['GET'])
 @token_required
 def get_user_details(user_id):
-    user = User.get_by_id(user_id)  # Получаем пользователя по ID
-    return render_template('users/user_details.html', user=user)
+    user = request.user
+    userDetails = User.get_by_id(user_id)  # Получаем пользователя по ID
+    permission_on_db = Permission.query.filter_by(page='users').all()
+    permission = []
+    response = {
+        "id": userDetails.id,
+        "first_name": userDetails.first_name,
+        "second_name": userDetails.second_name,
+        "third_name": userDetails.third_name,
+        "phone": userDetails.phone,
+        "job_title": userDetails.job_title,
+        "initials": userDetails.first_name[0].upper() + userDetails.second_name[0].upper(),
+        "shift_id": userDetails.shift_id,
+        "shift": str(Shift.query.filter_by(id=userDetails.shift_id).first().start_day) + "-" + str(Shift.query.filter_by(id=userDetails.department_id).first().end_day) + " число",
+        "shift_list": [{
+            "id": shift.id,
+            "name": shift.title,
+        }for shift in Shift.get_all()],
+        "department_id": userDetails.department_id,
+        "department": Department.query.filter_by(id=userDetails.department_id).first().name,
+        "department_list": [{
+            "id": department.id,
+            "name": department.name
+        }  for department in Department.query.all()],
+        "role_id": userDetails.role_id,
+        "role_list": [{
+            "id": role.id,
+            "name": role.name
+        } for role in Role.query.all()],
+    }
+    for item in permission_on_db:
+        perm_current = request.cookies.get(f'perm_{item.function}')
+        permission.append({item.function: perm_current})
+    partic = User.query.all()
+    return render_template('users/user_details.html', partic=partic, user=user, userDetails=response, permission=permission)
 
 
 # Создание нового пользователя
@@ -82,7 +115,7 @@ def create_user():
 
 
 # Обновление пользователя
-@users.route('/update/<int:user_id>', methods=['GET', 'POST'])
+@users.route('/<int:user_id>/update', methods=['GET', 'POST'])
 @token_required
 def update_user(user_id):
     user = User.get_by_id(user_id)
@@ -99,6 +132,22 @@ def update_user(user_id):
         if request.form.get('password'):
             user.set_password(request.form['password'])  # Обновляем пароль
 
+        if ShiftPerson.query.filter_by(first_user=user_id).first() or ShiftPerson.query.filter_by(second_user=user_id).first():
+            if ShiftPerson.query.filter_by(first_user=user_id).first():
+                data = ShiftPerson.query.filter_by(first_user=user_id).first()
+                data.second_user = request.form.get('shift_user_id')
+            elif Shift.query.filter_by(second_user=user_id).first():
+                data = Shift.query.filter_by(second_user=user_id).first()
+                data.first_user = request.form.get('shift_user_id')
+            db.session.commit()
+        else:
+            user = ShiftPerson(
+                first_user=user_id,
+                second_user=request.form.get('shift_user_id'),
+            )
+            db.session.add(user)
+            db.session.commit()
+
         user.save_to_db()  # Сохраняем изменения в базе данных
         return redirect(url_for('users.get_all_users'))  # Перенаправляем на страницу всех пользователей
 
@@ -113,38 +162,3 @@ def delete_user(user_id):
     user.delete_account()  # Удаляем пользователя (помечаем как удаленный)
     return redirect(url_for('users.get_all_users'))  # Перенаправляем на страницу всех пользователей
 
-
-# Активация пользователя
-@users.route('/activate/<int:user_id>', methods=['POST'])
-@token_required
-def activate_user(user_id):
-    user = User.get_by_id(user_id)
-    user.activate_account()  # Активируем пользователя
-    return redirect(url_for('users.get_all_users'))  # Перенаправляем на страницу всех пользователей
-
-
-# Деактивация пользователя
-@users.route('/deactivate/<int:user_id>', methods=['POST'])
-@token_required
-def deactivate_user(user_id):
-    user = User.get_by_id(user_id)
-    user.deactivate_account()  # Деактивируем пользователя
-    return redirect(url_for('users.get_all_users'))  # Перенаправляем на страницу всех пользователей
-
-
-# Бан пользователя
-@users.route('/ban/<int:user_id>', methods=['POST'])
-@token_required
-def ban_user(user_id):
-    user = User.get_by_id(user_id)
-    user.ban_user()  # Баним пользователя
-    return redirect(url_for('users.get_all_users'))  # Перенаправляем на страницу всех пользователей
-
-
-# Разбан пользователя
-@users.route('/unban/<int:user_id>', methods=['POST'])
-@token_required
-def unban_user(user_id):
-    user = User.get_by_id(user_id)
-    user.unban_user()  # Разбаним пользователя
-    return redirect(url_for('users.get_all_users'))  # Перенаправляем на страницу всех пользователей

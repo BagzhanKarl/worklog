@@ -2,7 +2,7 @@ from calendar import monthrange
 from datetime import datetime
 
 from flask import Blueprint, request, render_template, redirect, url_for
-from app.db import db, Shift, User, Permission
+from app.db import db, Shift, User, Permission, ReportShift, ShiftPerson
 from app.utils import token_required, permission_check
 
 shifts = Blueprint('shifts', __name__, url_prefix='/shifts')
@@ -72,4 +72,51 @@ def update_shift():
 @token_required
 def report_shift():
     user = request.user
-    return render_template('shifts/shift-change.html', user=user)
+    response = ReportShift.query.filter_by(created_by=user['id']).all()
+    response_me = ReportShift.query.filter_by(can_see=user['id']).all()
+    return render_template('shifts/shift-change.html', user=user, table=response, table_me=response_me)
+
+@shifts.route('/report/view/<int:id>', methods=['GET'])
+@token_required
+def view_shift(id):
+    user = request.user
+    response = ReportShift.query.filter_by(id=id).first()
+    sender = User.query.filter_by(id=response.created_by).first()
+    return render_template('shifts/report-details.html', user=user, response=response, sender=sender)
+
+
+@shifts.route('/report/new')
+@token_required
+def new_shift():
+    user = request.user
+    return render_template('shifts/add-report.html', user=user)
+
+@shifts.route('/report/save/<int:id>', methods=['POST'])
+@token_required
+def save_report(id):
+    user = request.user
+
+    form_from = request.form['from']
+    form_to = request.form['to']
+    completed = request.form.get('completed')
+    needed = request.form.get('needed')
+    cansee = 0
+
+    shifter = ShiftPerson.query.filter_by(first_user=id).first()
+    if shifter:
+        cansee = shifter.second_user
+    else:
+        shifter = ShiftPerson.query.filter_by(second_user=id).first()
+        cansee = shifter.first_user
+
+    new_report = ReportShift(
+        from_on=form_from,
+        to=form_to,
+        completed=completed,
+        needed=needed,
+        created_by=id,
+        can_see=cansee,
+    )
+    db.session.add(new_report)
+    db.session.commit()
+    return redirect(url_for('shifts.get_all_shifts'))

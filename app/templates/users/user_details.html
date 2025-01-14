@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+{% set title = 'Профиль сотрудника' %}
+
+{% block content %}
+<div class="container content-wrapper">
+    <div class="users-header mb-4">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-md-6 col-sm-6">
+                <h1 class="page-title">Профиль сотрудника</h1>
+            </div>
+            <div class="col-md-6 col-sm-6">
+                <div class="d-flex gap-3 justify-content-end">
+                    <a href="/users" class="btn btn-secondary d-flex align-items-center gap-2">
+                        <ion-icon name="arrow-back-outline"></ion-icon>
+                        Назад к списку
+                    </a>
+                    {% if permission[5].edit_other_profiles == 'true' %}
+                    <button type="submit" form="userForm" class="btn btn-primary d-flex align-items-center gap-2">
+                        <ion-icon name="save-outline"></ion-icon>
+                        Сохранить изменения
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="user-avatar-large mx-auto mb-3">
+                            {% if userDetails.avatar %}
+                            <img src="{{ userDetails.avatar }}" alt="Avatar">
+                            {% else %}
+                            <div class="avatar-placeholder">{{ userDetails.initials }}</div>
+                            {% endif %}
+                        </div>
+                        <h3 class="user-name">{{ userDetails.second_name }} {{ userDetails.first_name }} {{ userDetails.third_name }}</h3>
+                        <p class="user-position text-muted">{{ userDetails.job_title }}</p>
+                        <div class="user-status mb-3">
+                            {% if userDetails.status %}
+                                <span class="badge rounded-pill bg-success">Работает</span>
+                            {% else %}
+                                <span class="badge rounded-pill bg-warning">Не работает</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="user-info-list">
+                        <div class="info-item">
+                            <ion-icon name="call-outline"></ion-icon>
+                            <span>{{ userDetails.phone }}</span>
+                        </div>
+
+                        <div class="info-item">
+                            <ion-icon name="time-outline"></ion-icon>
+                            <span>{{ userDetails.shift }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form id="userForm" method="post" action="/users/{{ userDetails.id }}/update">
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <label class="form-label">Имя</label>
+                                <input type="text" class="form-control" name="first_name" value="{{ userDetails.first_name }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Фамилия</label>
+                                <input type="text" class="form-control" name="second_name" value="{{ userDetails.second_name }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Отчество</label>
+                                <input type="text" class="form-control" name="third_name" value="{{ userDetails.third_name }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Телефон</label>
+                                <input type="tel" class="form-control" id="phoneInput" value="{{ userDetails.phone }}">
+                                <input type="text" id="phone" name="phone" value="{{ userDetails.phone }}" hidden required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Новый пароль</label>
+                                <input type="password" class="form-control" name="new_password" placeholder="Оставьте пустым, чтобы не менять">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Отдел</label>
+                                <select class="form-select" name="department_id">
+                                    {% for department in userDetails.department_list %}
+                                    <option value="{{ department.id }}" {% if department.id == userDetails.department_id %}selected{% endif %}>
+                                        {{ department.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Должность</label>
+                                <input type="text" class="form-control" name="position" value="{{ userDetails.job_title }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Вахта</label>
+                                <select class="form-select" name="shift_id">
+                                    {% for shift in userDetails.shift_list %}
+                                    <option value="{{ shift.id }}" {% if shift.id == userDetails.shift_id %}selected{% endif %}>
+                                        {{ shift.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Роль</label>
+                                <select class="form-select" name="role_id" required>
+                                    {% for role in userDetails.role_list %}
+                                        {% if role.id != 1 %}
+                                        <option value="{{ role.id }}" {% if role.id == userDetails.role_id %}selected{% endif %}>
+                                            {{ role.name }}
+                                        </option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Выберите сотрудника на следущем вахте</label>
+                                <select id="user_select" name="shift_user_id" required>
+                                    {% for user in partic %}
+                                        <option value="{{ user.id }}">{{ user.second_name + " " + user.first_name + " " + user.third_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mt-3 text-end">
+                                <button class="btn btn-primary">Сохранить</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.min.css">
+<style>
+.iti {
+    width: 100%;
+}
+
+.users-header {
+    margin-top: 1.5rem;
+}
+
+.card {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+}
+
+.user-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--primary-color);
+}
+
+.user-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 2rem;
+}
+
+.user-name {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.user-position {
+    margin-bottom: 1rem;
+    font-size: 1rem;
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+}
+
+.user-info-list {
+    margin-top: 2rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+.info-item ion-icon {
+    font-size: 1.25rem;
+    color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .users-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block js %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+<script>
+const phoneInput = document.querySelector("#phoneInput");
+const iti = window.intlTelInput(phoneInput, {
+    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+    initialCountry: "kz",
+    preferredCountries: ["kz"],
+    separateDialCode: true
+});
+
+phoneInput.addEventListener("blur", () => {
+    const phoneNumber = iti.getNumber();
+    $('#phoneInput').removeClass('is-invalid');
+    $('#phoneInput').removeClass('is-valid');
+    if (iti.isValidNumber()) {
+        $('#phoneInput').removeClass('is-invalid');
+        $('#phoneInput').addClass('is-valid');
+        $('#phone').val(phoneNumber);
+    } else {
+        $('#phoneInput').addClass('is-invalid');
+    }
+});
+</script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.2.2/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.2.2/js/tom-select.complete.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        new TomSelect('#user_select', {
+            create: false,
+            sortField: {
+                field: "text",
+                direction: "asc"
+            },
+            placeholder: 'Выберите сотрудника...',
+            plugins: ['dropdown_input'],
+            maxOptions: null,
+            render: {
+                no_results: function(data, escape) {
+                    return '<div class="no-results">Сотрудник не найден</div>';
+                },
+            }
+        });
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% block css %}
+<style>
+.dashboard-wrapper {
+    padding: 2rem 0;
+}
+
+/* Типы событий */
+.event-meeting {
+    background-color: #3788d8;
+    color: white;
+    border-color: transparent;
+}
+
+.event-presentation {
+    background-color: #f39c12;
+    color: white;
+    border-color: transparent;
+}
+
+.event-deadline {
+    background-color: #2C3E50;
+    color: white;
+    border-color: transparent;
+}
+
+.event-task {
+    background-color: #27ae60;
+    color: white;
+    border-color: transparent;
+}
+
+/* Ховер эффект для всех типов событий */
+.calendar-event:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Основная карточка календаря */
+.calendar-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s;
+}
+
+.calendar-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Заголовок и навигация */
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #2D3748;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.current-date {
+    color: #718096;
+    font-size: 15px;
+    margin-top: 4px;
+}
+
+/* Кнопки */
+.calendar-actions button {
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-outline-primary {
+    border-color: #E2E8F0;
+    color: #4A5568;
+}
+
+.btn-outline-primary:hover {
+    background-color: #F7FAFC;
+    border-color: #CBD5E0;
+    color: #2D3748;
+}
+
+
+
+/* Стили календаря */
+.fc {
+    max-width: 100%;
+    background: white;
+    --fc-border-color: #E2E8F0;
+    --fc-today-bg-color: #EBF8FF;
+    --fc-event-bg-color: #4299E1;
+    --fc-event-border-color: #4299E1;
+}
+
+.fc .fc-daygrid-day-frame {
+    padding: 8px;
+}
+
+.fc .fc-daygrid-day-top {
+    margin-bottom: 4px;
+}
+
+.fc .fc-daygrid-day-number {
+    font-size: 14px;
+    font-weight: 500;
+    color: #4A5568;
+    padding: 4px;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+    color: #4299E1;
+    font-weight: 600;
+}
+
+.fc th {
+    padding: 12px 0;
+    font-weight: 600;
+    color: #2D3748;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+    border-color: #EDF2F7;
+}
+
+.fc .fc-daygrid-day {
+    min-height: 120px;
+}
+
+/* События */
+.fc-event {
+    margin: 2px 0;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+}
+
+.fc-event:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.fc-event-time {
+    font-weight: 600;
+}
+
+/* Боковая карточка */
+.upcoming-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #2D3748;
+    margin-bottom: 16px;
+}
+
+/* Модальное окно */
+.modal-content {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #EDF2F7;
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #2D3748;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #EDF2F7;
+}
+
+/* Форма */
+.form-label {
+    font-weight: 500;
+    color: #4A5568;
+    margin-bottom: 8px;
+}
+
+.form-control {
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.form-control:focus {
+    border-color: #4299E1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+textarea.form-control {
+    min-height: 100px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .calendar-card {
+        padding: 16px;
+    }
+
+    .page-title {
+        font-size: 24px;
+    }
+
+    .calendar-actions {
+        margin-top: 16px;
+    }
+
+    .fc .fc-daygrid-day {
+        min-height: 100px;
+    }
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container dashboard-wrapper">
+    <div class="row g-4">
+        <div class="col-md-12 col-sm-6">
+            <div class="card">
+                <div class="card-body">
+                    <div>
+                        <div class="d-flex align-items-center mb-3 gap-2 justify-content-center">
+                            <div>С:</div>
+                            <div>{{ response.from_on }}</div>
+                            <div>- По:</div>
+                            <div>{{ response.to }}</div>
+                        </div>
+                        <div class="mb-3 d-flex align-items-center justify-content-between">
+                            <h4>Что было сделано?</h4>
+                        </div>
+                        <div class="mb-3 wasdo" id="wasdo">
+                            {{ response.completed }}
+                        </div>
+                        <div class="mb-3 d-flex align-items-center justify-content-between">
+                            <h4>Что нужно сделать?</h4>
+                        </div>
+                        <div class="needdo">
+                            {{ response.needed }}
+                        </div>
+                        <hr>
+                        <div class="mt-3 d-flex align-items-center justify-content-between">
+                            <div class="h6 ">
+                                {{ sender.second_name }} {{ sender.first_name }}  {{ sender.third_name }}
+                            </div>
+                            <div class="created_at">
+                                {{ response.created_at }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+

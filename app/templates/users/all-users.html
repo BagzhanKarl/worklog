@@ -130,7 +130,8 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Телефон</label>
-                        <input type="tel" class="form-control" name="phone">
+                        <input type="tel" class="form-control {% if 'phone' in field_errors %}is-invalid{% endif %}" id="phoneInput">
+                        <input type="text" id="phone" name="phone" hidden required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Пароль</label>
@@ -163,7 +164,9 @@
                         <select class="form-select" name="role_id" required>
                             <option value="">Выберите роль</option>
                             {% for role in roles %}
+                                {% if role.id != 1 %}
                                 <option value="{{ role.id }}">{{ role.name }}</option>
+                                {% endif %}
                             {% endfor %}
                         </select>
                     </div>
@@ -180,8 +183,11 @@
 
 {% block css %}
 <link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.2.1/b-3.2.0/datatables.min.css" rel="stylesheet">
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.min.css">
 <style>
+.iti {
+    width: 100%;
+}
 .users-header {
     margin-top: 1.5rem;
 }
@@ -400,5 +406,29 @@ function deleteUser(userId) {
         });
     }
 }
+</script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+<script>
+const phoneInput = document.querySelector("#phoneInput");
+const iti = window.intlTelInput(phoneInput, {
+    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+    initialCountry: "kz",
+    preferredCountries: ["kz"],
+    separateDialCode: true
+});
+
+phoneInput.addEventListener("blur", () => {
+    const phoneNumber = iti.getNumber();
+    $('#phoneInput').removeClass('is-invalid');
+    $('#phoneInput').removeClass('is-valid');
+    if (iti.isValidNumber()) {
+        $('#phoneInput').removeClass('is-invalid');
+        $('#phoneInput').addClass('is-valid');
+        $('#phone').val(phoneNumber);
+    } else {
+        $('#phoneInput').addClass('is-invalid');
+    }
+});
 </script>
 {% endblock %}
