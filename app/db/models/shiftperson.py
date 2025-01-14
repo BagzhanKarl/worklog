@@ -21,6 +21,29 @@ class ShiftPerson(db.Model):
         db.session.add(self)
         db.session.commit()
 
+    @classmethod
+    def find_partner(cls, user_id):
+        """
+        Находит напарника для пользователя по его ID
+
+        Args:
+            user_id (int): ID пользователя, для которого ищем напарника
+
+        Returns:
+            int|None: ID напарника если найден, None если не найден
+        """
+        # Ищем где пользователь является первым участником
+        shift = cls.query.filter_by(first_user=user_id).first()
+        if shift:
+            return shift.second_user
+
+        # Ищем где пользователь является вторым участником
+        shift = cls.query.filter_by(second_user=user_id).first()
+        if shift:
+            return shift.first_user
+
+        return None
+
 
 class ReportShift(db.Model):
     __tablename__ = 'report_shift'

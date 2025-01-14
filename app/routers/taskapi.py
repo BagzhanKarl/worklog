@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, redirect, url_for
-from app.db import db, Department, TaskPriority, TaskStatus, User, FileType
+from app.db import db, Department, TaskPriority, TaskStatus, User, FileType, ShiftPerson
 from datetime import datetime
 from app.db import (
     Task, TaskParticipant, TaskChecklist, ChecklistItem,
@@ -245,6 +245,17 @@ def add_task_member(task_id):
             user_id=user_id,
             role=role
         )
+
+        partner_id = ShiftPerson.find_partner(user_id)  # ищем напарника для пользователя с id=5
+        if partner_id:
+            participant2 = TaskParticipant(
+                task_id=task_id,
+                user_id=partner_id,
+                role=role
+            )
+            db.session.add(participant2)
+        else:
+            print("Напарник не найден")
 
         db.session.add(participant)
         db.session.commit()

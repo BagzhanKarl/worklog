@@ -43,47 +43,89 @@ def get_all_users():
     return render_template('users/all-users.html', user=user_rest, roles=Role.get_all(), shifts=Shift.get_all(), departments=departments, users=response, permission=permission)
 
 
-# Просмотр данных конкретного пользователя
 @users.route('/<int:user_id>', methods=['GET'])
 @token_required
 def get_user_details(user_id):
-    user = request.user
-    userDetails = User.get_by_id(user_id)  # Получаем пользователя по ID
-    permission_on_db = Permission.query.filter_by(page='users').all()
-    permission = []
-    response = {
-        "id": userDetails.id,
-        "first_name": userDetails.first_name,
-        "second_name": userDetails.second_name,
-        "third_name": userDetails.third_name,
-        "phone": userDetails.phone,
-        "job_title": userDetails.job_title,
-        "initials": userDetails.first_name[0].upper() + userDetails.second_name[0].upper(),
-        "shift_id": userDetails.shift_id,
-        "shift": str(Shift.query.filter_by(id=userDetails.shift_id).first().start_day) + "-" + str(Shift.query.filter_by(id=userDetails.department_id).first().end_day) + " число",
-        "shift_list": [{
-            "id": shift.id,
-            "name": shift.title,
-        }for shift in Shift.get_all()],
-        "department_id": userDetails.department_id,
-        "department": Department.query.filter_by(id=userDetails.department_id).first().name,
-        "department_list": [{
-            "id": department.id,
-            "name": department.name
-        }  for department in Department.query.all()],
-        "role_id": userDetails.role_id,
-        "role_list": [{
-            "id": role.id,
-            "name": role.name
-        } for role in Role.query.all()],
-    }
-    for item in permission_on_db:
-        perm_current = request.cookies.get(f'perm_{item.function}')
-        permission.append({item.function: perm_current})
-    partic = User.query.all()
-    return render_template('users/user_details.html', partic=partic, user=user, userDetails=response, permission=permission)
+    try:
+        user = request.user
+        userDetails = User.get_by_id(user_id)
 
+        if not userDetails:
+            flash('Пользователь не найден', 'error')
+            return redirect(url_for('users.index'))
 
+        permission_on_db = Permission.query.filter_by(page='users').all()
+        permission = []
+
+        # Получаем смену пользователя
+        shift = None
+        shift_period = "Не указано"
+        if userDetails.shift_id:
+            shift = Shift.query.get(userDetails.shift_id)
+            if shift and shift.start_day and shift.end_day:
+                shift_period = f"{shift.start_day}-{shift.end_day} число"
+
+        # Получаем отдел пользователя
+        department = None
+        department_name = "Не указано"
+        if userDetails.department_id:
+            department = Department.query.get(userDetails.department_id)
+            if department:
+                department_name = department.name
+
+        # Формируем инициалы только если есть имя и фамилия
+        initials = "?"
+        if userDetails.first_name and userDetails.second_name:
+            try:
+                initials = f"{userDetails.first_name[0].upper()}{userDetails.second_name[0].upper()}"
+            except IndexError:
+                initials = "?"
+
+        response = {
+            "id": userDetails.id,
+            "first_name": getattr(userDetails, 'first_name', ''),
+            "second_name": getattr(userDetails, 'second_name', ''),
+            "third_name": getattr(userDetails, 'third_name', ''),
+            "phone": getattr(userDetails, 'phone', ''),
+            "job_title": getattr(userDetails, 'job_title', ''),
+            "initials": initials,
+            "shift_id": getattr(userDetails, 'shift_id', None),
+            "shift": shift_period,
+            "shift_list": [{
+                "id": shift.id,
+                "name": getattr(shift, 'title', 'Без названия')
+            } for shift in Shift.get_all() or []],
+            "department_id": getattr(userDetails, 'department_id', None),
+            "department": department_name,
+            "department_list": [{
+                "id": dept.id,
+                "name": getattr(dept, 'name', 'Без названия')
+            } for dept in Department.query.all() or []],
+            "role_id": getattr(userDetails, 'role_id', None),
+            "role_list": [{
+                "id": role.id,
+                "name": getattr(role, 'name', 'Без названия')
+            } for role in Role.query.all() or []]
+        }
+
+        # Получаем разрешения
+        for item in permission_on_db:
+            perm_current = request.cookies.get(f'perm_{item.function}')
+            permission.append({item.function: perm_current})
+
+        return render_template(
+            'users/user_details.html',
+            partic=User.query.all() or [],
+            user=user,
+            userDetails=response,
+            permission=permission
+        )
+
+    except Exception as e:
+        # Логирование ошибки
+        print(f"Error in get_user_details: {str(e)}")  # Замените на proper logging
+
+        return redirect(url_for('users.index'))
 # Создание нового пользователя
 @users.route('/create', methods=['GET', 'POST'])
 @token_required
